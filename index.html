@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>提鹅鹏 · 单车环岛 | Pelican Island Ride</title>
+  <meta name="description" content="一只鹈鹕骑着单车环游一座电影感十足的 3D 小岛（three.js 程序化生成）" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='24' font-size='24'%3E%F0%9F%A6%85%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <canvas id="game-canvas" aria-label="Pelican Island Ride"></canvas>
+  <div id="ui-root"></div>
+
+  <!-- Boot overlay lives outside the module system so failures are visible -->
+  <div id="boot-overlay">
+    <div class="boot-card">
+      <div class="boot-title">提鹅鹏 · 单车环岛</div>
+      <div class="boot-sub">A Pelican&rsquo;s Island Ride</div>
+      <div class="boot-track"><div id="boot-bar"></div></div>
+      <div id="boot-label">正在生成小岛…</div>
+      <div class="boot-hint">首次进入需要几秒钟生成地形、植被与建筑</div>
+    </div>
+  </div>
+
+  <style>
+    #boot-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      display: grid; place-items: center;
+      background: radial-gradient(120% 90% at 50% 0%, #1d2a44 0%, #0d1420 55%, #070a12 100%);
+      color: #f2e8d5;
+      font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", STSong, serif;
+      transition: opacity 700ms ease;
+    }
+    #boot-overlay.is-done { opacity: 0; pointer-events: none; }
+    .boot-card { text-align: center; padding: 24px 32px; }
+    .boot-title { font-size: clamp(28px, 5vw, 56px); letter-spacing: 0.22em; }
+    .boot-sub { margin-top: 10px; font-size: 12px; letter-spacing: 0.42em; opacity: 0.62; text-transform: uppercase; }
+    .boot-track { margin: 28px auto 12px; width: min(360px, 70vw); height: 3px; background: rgba(242,232,213,0.18); overflow: hidden; }
+    #boot-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #e8b64c, #f2e8d5); transition: width 260ms ease; }
+    #boot-label { font-size: 13px; letter-spacing: 0.24em; opacity: 0.86; min-height: 1.4em; }
+    .boot-hint { margin-top: 26px; font-size: 11px; letter-spacing: 0.16em; opacity: 0.42; }
+  </style>
+
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# keep the repository LF-only regardless of the checkout platform
+* text=auto eol=lf
+
+# binaries
+*.jpg binary
+*.png binary
+*.ico binary

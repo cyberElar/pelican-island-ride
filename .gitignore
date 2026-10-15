@@ -1,0 +1,12 @@
+# dependencies
+node_modules/
+
+# intermediate bundle (the playable copies live in the repo root: game.js + styles.css)
+dist/
+
+# local scratch
+*.log
+*.tmp
+.agent-probe.txt
+.DS_Store
+Thumbs.db

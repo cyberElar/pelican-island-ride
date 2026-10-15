@@ -1,0 +1,27 @@
+{
+  "name": "pelican-island",
+  "version": "1.0.0",
+  "description": "Pelican Island Ride - a cinematic three.js cycling showcase",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "build:quick": "node tools/build.mjs --quick",
+    "build:publish": "node tools/build.mjs --publish",
+    "shot": "node tools/screenshot.mjs",
+    "shots:readme": "node tools/dev/make-readme-shots.mjs",
+    "test": "node tools/dev/test-all.mjs",
+    "serve": "node tools/serve.mjs"
+  },
+  "keywords": [],
+  "type": "module",
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.2",
+    "playwright-core": "^1.64.0"
+  }
+}
