@@ -18,6 +18,14 @@
 
 ---
 
+## 60-second tour
+
+1. `Enter` — start the ring-road time trial and follow the checkpoint gates.
+2. `C` and `T` — swap the camera; walk the light from dawn to sunset to night.
+3. `P` — photo mode (`V` cycles four grade filters, `X` exports a PNG); `M` opens the map.
+
+40 golden feathers hide along the road, and 25 landmarks unlock discovery cards as you ride past.
+
 ## What's in the box
 
 **The island** — 6 km x 6 km terrain: an 11 km ring road with dashes, edge lines,
