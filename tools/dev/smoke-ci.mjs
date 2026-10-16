@@ -11,6 +11,7 @@
  *   node tools/dev/smoke-ci.mjs --root          # the committed root bundle
  *   node tools/dev/smoke-ci.mjs --quality high
  *   node tools/dev/smoke-ci.mjs --mobile        # emulated phone + touch pad
+ *   node tools/dev/smoke-ci.mjs --throttle 20   # CPU-throttled (slow renderer)
  *
  * Browser: $PELICAN_BROWSER, else $CHROME_PATH, else the usual Windows
  * Edge/Chrome paths, else Playwright's own chromium (CI installs it with
@@ -30,6 +31,7 @@ const arg = (n, d) => {
 const quality = arg('quality', 'low');
 const seed = arg('seed', '20261014');
 const mobile = process.argv.includes('--mobile');
+const throttle = Number(arg('throttle', '1'));
 const useRoot = process.argv.includes('--root') || !existsSync(path.join(root, 'dist', 'index.html'));
 const entry = useRoot ? path.join(root, 'index.html') : path.join(root, 'dist', 'index.html');
 
@@ -51,7 +53,11 @@ const glFlags = process.platform === 'win32'
 
 const launchOpts = {
   headless: true,
-  args: [...glFlags, '--mute-audio', '--allow-file-access-from-files'],
+  args: [
+    ...glFlags, '--mute-audio', '--allow-file-access-from-files',
+    // containers give /dev/shm 64 MB, which chromium does not like
+    ...(process.platform === 'win32' ? [] : ['--disable-dev-shm-usage']),
+  ],
 };
 if (SYSTEM_BROWSER) launchOpts.executablePath = SYSTEM_BROWSER;
 
@@ -74,6 +80,15 @@ const page = await browser.newPage(
     }
     : { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 }
 );
+
+// The software-GL CI runner renders this scene at ~1 fps, so every interaction
+// below polls the game state instead of waiting on the clock. The throttle
+// flag reproduces that slowness locally.
+if (throttle > 1) {
+  const client = await page.context().newCDPSession(page);
+  await client.send('Emulation.setCPUThrottlingRate', { rate: throttle });
+  console.log(`cpu throttled ${throttle}x (slow-renderer simulation)`);
+}
 
 // The ANGLE/D3D11 shader compiler emits this double-precision notice for the
 // terrain shader on every run; it is not actionable and does not appear on the
@@ -129,6 +144,14 @@ check('first-run tutorial strip is shown', hudOnStart.tutorial === true);
 check('debug overlay reports fps and calls', /fps \d+/.test(hudOnStart.debug) && /calls/.test(hudOnStart.debug), hudOnStart.debug.split('\n')[0]);
 
 // --- real input: pedal for a moment -----------------------------------------
+const waitFor = (fn, timeout, label) =>
+  page.waitForFunction(fn, null, { timeout })
+    .then(() => true)
+    .catch(() => {
+      console.log(`  (timed out waiting for ${label})`);
+      return false;
+    });
+
 if (mobile) {
   const pad = await page.evaluate(() => {
     const root = document.getElementById('pi-touch');
@@ -147,11 +170,11 @@ if (mobile) {
   const box = pad.throttleBox;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
-  await page.waitForTimeout(2500);
+  await waitFor(() => Math.abs(window.__pelican.state.player.speed) > 6, 120000, 'the bike to reach 6 m/s');
   await page.mouse.up();
 } else {
   await page.keyboard.down('w');
-  await page.waitForTimeout(2500);
+  await waitFor(() => Math.abs(window.__pelican.state.player.speed) > 6, 120000, 'the bike to reach 6 m/s');
   await page.keyboard.up('w');
 }
 const ride = await page.evaluate(() => ({
@@ -165,16 +188,15 @@ check('tutorial advances after riding', ride.tutorialStep !== '1/3', `step ${rid
 
 // --- pause menu round trip ---------------------------------------------------
 await page.keyboard.press('Escape');
-await page.waitForTimeout(350);
+const pausedOk = await waitFor(() => window.__pelican.state.paused === true, 30000, 'the pause state');
 const paused = await page.evaluate(() => ({
   paused: window.__pelican.state.paused,
   badge: document.querySelector('[data-testid="paused"]')?.classList.contains('is-on'),
 }));
-check('Escape pauses the game', paused.paused === true && paused.badge === true, JSON.stringify(paused));
+check('Escape pauses the game', pausedOk && paused.paused === true && paused.badge === true, JSON.stringify(paused));
 await page.keyboard.press('Escape');
-await page.waitForTimeout(350);
-const resumed = await page.evaluate(() => window.__pelican.state.paused);
-check('Escape resumes the game', resumed === false);
+const resumedOk = await waitFor(() => window.__pelican.state.paused === false, 30000, 'the resume');
+check('Escape resumes the game', resumedOk);
 
 // --- world content sanity ----------------------------------------------------
 await page.evaluate(() => {
@@ -199,11 +221,11 @@ if (mobile) {
     document.querySelector('[data-testid="touch-throttle"]').getBoundingClientRect().toJSON());
   await page.mouse.move(pad.x + pad.width / 2, pad.y + pad.height / 2);
   await page.mouse.down();
-  await page.waitForTimeout(3400);
+  await waitFor(() => (window.__unstuck || []).length > 0, 240000, 'the stuck rescue');
   await page.mouse.up();
 } else {
   await page.evaluate(() => window.__pelican.ctx.input.setTouchAxes({ throttle: 1 }));
-  await page.waitForTimeout(3400);
+  await waitFor(() => (window.__unstuck || []).length > 0, 240000, 'the stuck rescue');
   await page.evaluate(() => window.__pelican.ctx.input.setTouchAxes({ throttle: 0 }));
 }
 const stuck = await page.evaluate(() => {
