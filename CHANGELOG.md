@@ -30,6 +30,9 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 - Photo mode: four real grade filters (original / sea film / golden hour /
   silver mono) cycled with `V` or the on-screen chip, and `X` (or the chip)
   exports the current frame as a PNG.
+- First-run tutorial: a three-step goal strip (set off, ring the bell, collect
+  a feather) that is non-blocking and remembered per browser, plus an
+  fps / frame-time / draw-call overlay behind `?debug=1`.
 
 ### Fixed
 

@@ -404,6 +404,84 @@ async function boot() {
     }
   }
 
+  // ----------------------------------------------- first-run tutorial (C3)
+  // Three contextual goals for a fresh save. Non-blocking: the strip simply
+  // sits in the HUD column until each goal happens, and completion is
+  // remembered per browser so returning riders never see it again.
+  const TUTORIAL_KEY = 'pelicanIsland.tutorialDone';
+  const TUTORIAL_STEPS = [
+    { id: 'go', zh: '按住 W 加速出发', en: 'Hold W to set off' },
+    { id: 'bell', zh: '按 B 摇一次车铃', en: 'Ring the bell once (B)' },
+    { id: 'feather', zh: '沿路收集一根金色羽毛', en: 'Collect a golden feather' },
+  ];
+  let tutorialStep = -1;
+  let tutorialDone = false;
+  try { tutorialDone = localStorage.getItem(TUTORIAL_KEY) === '1'; } catch { /* ignore */ }
+
+  function applyTutorialStep() {
+    if (tutorialDone || tutorialStep < 0 || tutorialStep >= TUTORIAL_STEPS.length) {
+      hud.setTutorial?.(null);
+      return;
+    }
+    const step = TUTORIAL_STEPS[tutorialStep];
+    hud.setTutorial?.({ zh: step.zh, en: step.en, index: tutorialStep + 1, total: TUTORIAL_STEPS.length });
+  }
+
+  function tutorialAdvance(id) {
+    if (tutorialDone || tutorialStep < 0 || tutorialStep >= TUTORIAL_STEPS.length) return;
+    if (TUTORIAL_STEPS[tutorialStep].id !== id) return;
+    tutorialStep += 1;
+    if (tutorialStep >= TUTORIAL_STEPS.length) {
+      tutorialDone = true;
+      try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch { /* ignore */ }
+      hud.setTutorial?.(null);
+      hud.toast?.('教学完成 · 自由骑行', 'TUTORIAL COMPLETE');
+      return;
+    }
+    applyTutorialStep();
+  }
+
+  // --------------------------------------- debug overlay (?debug=1)
+  // fps / frame time / draw calls / triangles / geometry + texture counts,
+  // refreshed four times a second; also handy for headless perf probes.
+  let debugEl = null;
+  let debugAcc = 0;
+  let debugFps = 0;
+  if (params.get('debug') === '1') {
+    debugEl = document.createElement('div');
+    debugEl.id = 'pi-debug';
+    debugEl.setAttribute('data-testid', 'debug-overlay');
+    debugEl.style.cssText = [
+      'position:fixed', 'left:10px', 'bottom:10px', 'z-index:1999',
+      'padding:6px 10px', 'border-radius:6px',
+      'background:rgba(10,14,24,0.72)', 'color:#cfe0ee',
+      'font:11px/1.55 Consolas,ui-monospace,monospace',
+      'white-space:pre', 'pointer-events:none',
+    ].join(';');
+    document.body.appendChild(debugEl);
+  }
+
+  function updateDebugOverlay(dt) {
+    if (!debugEl) return;
+    const inst = 1 / Math.max(dt, 1e-4);
+    debugFps = debugFps ? debugFps * 0.9 + inst * 0.1 : inst;
+    debugAcc += dt;
+    if (debugAcc < 0.25) return;
+    debugAcc = 0;
+    const info = engine.renderer && engine.renderer.info;
+    const r = (info && info.render) || {};
+    const mem = (info && info.memory) || {};
+    let heap = '';
+    if (typeof performance !== 'undefined' && performance.memory) {
+      heap = `\nheap ${(performance.memory.usedJSHeapSize / 1048576).toFixed(0)} / ${(performance.memory.jsHeapSizeLimit / 1048576).toFixed(0)} MB`;
+    }
+    debugEl.textContent =
+      `fps ${debugFps.toFixed(0)}   frame ${(dt * 1000).toFixed(1)} ms\n` +
+      `calls ${r.calls != null ? r.calls : '-'}   tris ${r.triangles != null ? Math.round(r.triangles / 1000) + 'k' : '-'}\n` +
+      `geo ${mem.geometries != null ? mem.geometries : '-'}   tex ${mem.textures != null ? mem.textures : '-'}   prog ${info && info.programs ? info.programs.length : '-'}` +
+      heap;
+  }
+
   function onStart(mode) {
     state.started = true;
     input.enabled = true; // quitting to title used to leave input locked (P0-3)
@@ -419,6 +497,11 @@ async function boot() {
       bus.emit('sfx', { name: 'discovery', volume: 0.6 });
       hud.toast?.('开始骑行', '按住 W 加速 · C 切换相机 · M 地图');
     }
+    // First-run tutorial: resume (or hide) whenever a ride starts.
+    if (mode !== 'photo') {
+      if (!tutorialDone && tutorialStep < 0) tutorialStep = 0;
+      applyTutorialStep();
+    }
     void mode;
   }
 
@@ -433,6 +516,7 @@ async function boot() {
     enterPhotoMode(false);
     modules.camera?.setMode('tour');
     menus.show('title');
+    hud.setTutorial?.(null);
   }
 
   /** Settings > RESET PROGRESS: clear feathers and discoveries for this seed. */
@@ -568,6 +652,7 @@ async function boot() {
   bus.on('ui:toast', (p) => hud.toast?.(p?.title ?? '', p?.sub ?? ''));
   bus.on('photo:filter', () => cyclePhotoFilter(1));
   bus.on('photo:save', () => exportPhoto());
+  bus.on('feather:collected', () => tutorialAdvance('feather'));
   bus.on('poi:discovered', (p) => {
     if (p?.position) hud.setLetterbox?.(true);
   });
@@ -749,7 +834,10 @@ async function boot() {
       }
       if (input.pressed('map')) hud.toggleMinimap?.();
       if (input.pressed('reset')) modules.controls?.reset?.(state);
-      if (input.pressed('bell')) bus.emit('sfx', { name: 'bell' });
+      if (input.pressed('bell')) {
+        bus.emit('sfx', { name: 'bell' });
+        tutorialAdvance('bell');
+      }
       if (input.pressed('race')) modules.events?.startRace?.(state);
       if (input.pressed('mute')) {
         state.muted = !state.muted;
@@ -841,6 +929,13 @@ async function boot() {
       // pedal input hint for audio
       state.player.brake = input.axes.brake ?? 0;
 
+      // First-run tutorial: "set off" completes once the bike really moves.
+      if (tutorialStep === 0 && state.started && !state.paused && Math.abs(state.player.speed) > 6) {
+        tutorialAdvance('go');
+      }
+
+      updateDebugOverlay(dt);
+
       // photo-mode focus follows the rider
       if (state.photoMode && modules.camera) {
         const focus = modules.camera.focusDistance ? modules.camera.focusDistance(state) : 12;
@@ -883,6 +978,7 @@ async function boot() {
     resetProgress: () => resetGameplayProgress(),
     cycleFilter: (step) => cyclePhotoFilter(step || 1),
     savePhoto: () => exportPhoto(),
+    debugText: () => (debugEl ? debugEl.textContent : ''),
   };
 }
 

@@ -220,6 +220,13 @@ ok(
 );
 hud.setPhotoMode(false, null);
 
+hud.setTutorial({ zh: '按住 W 加速出发', en: 'Hold W to set off', index: 1, total: 3 });
+ok(document.getElementById('pi-tutorial').classList.contains('is-on'), 'tutorial strip shows');
+eq(document.getElementById('pi-tutorial-step').textContent, '1/3', 'tutorial step counter');
+eq(document.getElementById('pi-tutorial-text').textContent, '按住 W 加速出发', 'tutorial text (zh)');
+hud.setTutorial(null);
+ok(!document.getElementById('pi-tutorial').classList.contains('is-on'), 'tutorial strip hides');
+
 hud.setPaused(true);
 ok(document.getElementById('pi-hud').classList.contains('is-paused'), 'setPaused(true) fades the HUD');
 ok(document.querySelector('[data-testid="paused"]').classList.contains('is-on'), 'paused badge shows');

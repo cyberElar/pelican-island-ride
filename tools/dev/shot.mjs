@@ -21,6 +21,7 @@
  *   --size WxH          viewport (default 1600x900)
  *   --scale <n>         device pixel ratio (default 1)
  *   --touch             emulate a touch device (shows the virtual pad)
+ *   --debug             append ?debug=1 (fps / draw-call overlay)
  *   --settle <ms>       wait after moving (default 2500)
  *   --no-ui             hide the HUD for a clean art reference
  *   --fps               sample 180 frames and report frame times
@@ -91,7 +92,7 @@ page.on('console', (m) => {
 });
 page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
 
-const url = `${pathToFileURL(entry).href}?quality=${quality}&seed=${seed}`;
+const url = `${pathToFileURL(entry).href}?quality=${quality}&seed=${seed}${flag('debug') ? '&debug=1' : ''}`;
 const t0 = Date.now();
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 await page.waitForFunction(() => window.__pelican?.ready === true, null, { timeout: 240000 });

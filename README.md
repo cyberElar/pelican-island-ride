@@ -74,11 +74,13 @@ of day and your speed.
 | `T` | time of day: dawn / noon / sunset / night / cycle |
 | `N` | mute · `Esc` pause |
 
-Gamepad: left stick steers, triggers pedal and brake. On touch screens a virtual
+On a first visit a three-step goal strip walks you in: set off, ring the bell,
+collect a feather (completion is remembered). Gamepad: left stick steers,
+triggers pedal and brake. On touch screens a virtual
 pad appears — drag the left half to steer, hold the right pad to pedal, and the
 on-screen chips cover camera, map, photo, pause, bell, help and the time trial.
 `?seed=1234` generates a different island, `?quality=low|medium|high|ultra` sets
-the preset manually.
+the preset manually, `?debug=1` shows an fps / frame-time / draw-call overlay.
 
 ## Under the hood
 

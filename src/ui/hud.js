@@ -340,6 +340,10 @@ export function createHUD(ctx = {}, opts = {}) {
     '    <span class="pi-chip__value" id="pi-help-glyph">?</span>',
     '    <span class="pi-chip__label" id="pi-help-label">操作</span>',
     '  </button>',
+    '  <div class="pi-tutorial" id="pi-tutorial" data-testid="tutorial" role="status" aria-live="polite" aria-atomic="true">',
+    '    <span class="pi-tutorial__step pi-num" id="pi-tutorial-step">1/3</span>',
+    '    <span class="pi-tutorial__text" id="pi-tutorial-text"></span>',
+    '  </div>',
     '</div>',
     '<div class="pi-hud-corner pi-hud-corner--tr">',
     '  <div class="pi-minimap pi-panel" id="pi-minimap" data-testid="minimap" role="group" aria-label="小地图 MINIMAP">',
@@ -473,6 +477,7 @@ export function createHUD(ctx = {}, opts = {}) {
     'pi-loading', 'pi-loading-fill', 'pi-loading-title', 'pi-loading-label', 'pi-loading-pct',
     'pi-loading-tip', 'pi-loading-bar', 'pi-caption', 'pi-sr-status', 'pi-damage-label',
     'pi-hud-help', 'pi-help-label',
+    'pi-tutorial', 'pi-tutorial-step', 'pi-tutorial-text',
   ];
   for (const id of ids) E[id] = root.querySelector(`#${id}`);
 
@@ -493,6 +498,8 @@ export function createHUD(ctx = {}, opts = {}) {
   let loadingOn = false;
   let minimapOn = false;
   let photoGridOn = true;
+  /** Current first-run tutorial step from main.js, or null when hidden. */
+  let tutorialInfo = null;
   let raceOn = false;
   let raceRecord = false;
   let letterboxUser = false;
@@ -669,6 +676,7 @@ export function createHUD(ctx = {}, opts = {}) {
       applyTip();
     }
     applyDiscoveredText();
+    applyTutorial();
     lastText.speed = '';
     lastText.feather = '';
     lastText.raceTime = '';
@@ -1352,6 +1360,34 @@ export function createHUD(ctx = {}, opts = {}) {
     }
   }
 
+  function applyTutorial() {
+    const el = E['pi-tutorial'];
+    if (!el) return;
+    if (!tutorialInfo) {
+      el.classList.remove('is-on');
+      return;
+    }
+    el.classList.add('is-on');
+    if (E['pi-tutorial-step']) E['pi-tutorial-step'].textContent = `${tutorialInfo.index}/${tutorialInfo.total}`;
+    if (E['pi-tutorial-text']) {
+      E['pi-tutorial-text'].textContent = (language === 'en' ? tutorialInfo.en : tutorialInfo.zh) || tutorialInfo.zh || '';
+    }
+  }
+
+  /** First-run goal strip; pass null (or { done: true }) to hide it. */
+  function setTutorial(info) {
+    if (destroyed) return;
+    tutorialInfo = info && !info.done
+      ? {
+        zh: String(info.zh || ''),
+        en: String(info.en || ''),
+        index: isNum(info.index) ? info.index : 1,
+        total: isNum(info.total) ? info.total : 3,
+      }
+      : null;
+    applyTutorial();
+  }
+
   function destroy() {
     if (destroyed) return;
     destroyed = true;
@@ -1558,6 +1594,7 @@ export function createHUD(ctx = {}, opts = {}) {
     setMinimap,
     setCameraMode,
     setDiscoveredTotal,
+    setTutorial,
     caption: showCaption,
     announce,
     setCaptions(on) {
