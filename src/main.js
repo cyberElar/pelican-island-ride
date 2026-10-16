@@ -501,9 +501,40 @@ async function boot() {
     if (p?.position) hud.setLetterbox?.(true);
   });
   bus.on('rider:crash', () => hud.flashDamage?.());
+  // Finish presentation (audit P1): the director camera orbits the rider, the
+  // letterbox holds the moment and confetti fires; real input hands control
+  // straight back so the player is never locked in.
+  const fmtTime = (t) => {
+    const secs = Math.max(0, Number(t) || 0);
+    const m = Math.floor(secs / 60);
+    return m + ':' + (secs - m * 60).toFixed(1).padStart(4, '0');
+  };
+  let finishShow = 0;
   bus.on('race:finish', (p) => {
     const total = state.race.total || 0;
     hud.setRace?.({ checkpoint: total, total, time: p.time, best: p.best, finished: true, newRecord: p.record });
+    finishShow = 7.5;
+    hud.setLetterbox?.(true);
+    const at = state.player.position;
+    // Cut to a celebration angle near the rider; the director's idle orbit
+    // takes over from there (without the cut it would spend ~3 s travelling
+    // from wherever the camera happened to be, usually the tour spline).
+    const fx = Math.sin(state.player.heading);
+    const fz = Math.cos(state.player.heading);
+    engine.camera.position.set(at.x - fx * 9 + fz * 7, at.y + 3.6, at.z - fz * 9 - fx * 7);
+    modules.camera?.setMode('cinematic');
+    const popConfetti = () => {
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2 + 0.6;
+        modules.particles?.bursts?.confetti?.(at.x + Math.cos(a) * 1.4, at.y + 2.2 + i * 0.35, at.z + Math.sin(a) * 1.4);
+      }
+      modules.particles?.bursts?.sparkle?.(at.x, at.y + 1.6, at.z, 32);
+    };
+    popConfetti();
+    setTimeout(popConfetti, 450);
+    bus.emit('sfx', { name: 'firework', volume: 0.9 });
+    if (p.record) hud.toast?.('新纪录 ' + fmtTime(p.time), 'NEW RECORD ' + fmtTime(p.time));
+    else hud.toast?.('完赛 ' + fmtTime(p.time), 'FINISHED ' + fmtTime(p.time));
   });
   // "重置视角" in the settings menu emits this; the camera module's existing
   // reset capability is snapping back to the chase rig.
@@ -716,6 +747,22 @@ async function boot() {
         touch.update?.(dt, state);
       } catch (err) {
         console.error('[pelican] touch update failed', err);
+      }
+
+      // Race finish: hold the presentation until the player takes over.
+      if (finishShow > 0) {
+        finishShow -= dt;
+        const cancelled = input.pressed('camera');
+        if (cancelled || input.axes.throttle > 0.25 || input.axes.brake > 0.25) finishShow = 0;
+        if (finishShow > 0) {
+          // events.js rewrites state.discoveryActive every frame, and the HUD
+          // clears any externally set letterbox when it reads false - so the
+          // finish moment re-asserts it here, after hud.update() has run.
+          hud.setLetterbox?.(true);
+        } else {
+          hud.setLetterbox?.(false);
+          if (!state.photoMode && !cancelled) setCamera('chase');
+        }
       }
 
       // pedal input hint for audio

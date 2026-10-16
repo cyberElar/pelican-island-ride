@@ -41,6 +41,7 @@ const ACTION_BUTTONS = [
 
 const HINT_ZH = '左半屏滑动转向 · 右下按住加速';
 const HINT_EN = 'Drag left to steer · hold right pad to pedal';
+const HINT_SEEN_KEY = 'pelicanIsland.touchHintSeen';
 
 function createNullTouch() {
   const noop = () => {};
@@ -182,7 +183,11 @@ export function createTouchControls(input, ctx = {}) {
   let goDownAt = 0;
   let latchUntil = 0;
   let hintTimer = 0;
+  // The steering hint is a first-run aid: show it once per browser session.
   let hintShown = false;
+  try {
+    hintShown = !!(win && win.sessionStorage && win.sessionStorage.getItem(HINT_SEEN_KEY) === '1');
+  } catch { /* sessionStorage can be unavailable in private mode */ }
   let actionCount = 0;
   /** False while the host says the world is frozen (pause / photo / title). */
   let interactive = true;
@@ -406,6 +411,9 @@ export function createTouchControls(input, ctx = {}) {
       input.setTouchAxes({ steer: 0, throttle: 0, brake: 0 });
     } else if (!hintShown) {
       hintShown = true;
+      try {
+        if (win && win.sessionStorage) win.sessionStorage.setItem(HINT_SEEN_KEY, '1');
+      } catch { /* ignore */ }
       root.classList.add('is-hinting');
       if (win && typeof win.setTimeout === 'function') {
         hintTimer = win.setTimeout(() => root.classList.remove('is-hinting'), 7000);

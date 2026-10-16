@@ -88,9 +88,10 @@ the preset manually.
 - 488 geometries, 195 procedural textures, ~75 shader programs; the composite
   frame runs ≈660–790 draw calls and 2.8–5.1 M triangles at the *high* preset,
   depending on where you are (shadows and post-processing included).
-- Full island build takes ~8–13 s at the *high* preset on a desktop CPU (the
-  dense vegetation scatter dominates), then streams at interactive frame rates;
-  the loading screen reports progress and the console logs per-stage timings.
+- Full island build takes ~4–5 s at the *high* preset on a desktop CPU (up to
+  ~13 s while the machine is busy or throttled), then streams at interactive
+  frame rates; the loading screen reports progress and the console logs
+  per-stage timings.
 
 ## Development
 

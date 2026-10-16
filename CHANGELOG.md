@@ -24,6 +24,9 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
   build stopwatch inside the vegetation scatter.
 - Graphics-context-loss recovery overlay with a watchdog, a boot-time error
   strip in `index.html`, and a shared module-failure report.
+- A finish presentation for the time trial: a cut to a celebration angle, the
+  director's orbit, confetti and sparkle bursts, a held letterbox and a
+  best-lap toast (any real input hands control back).
 
 ### Fixed
 
@@ -48,13 +51,18 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
   tabs suspend rendering and audio.
 - Quality upgrades apply at runtime (bloom / SMAA), and the settings whitelist
   no longer drops the comfort switches on reload.
+- Photo-mode look on iOS Safari: touch pointers report `movementX/Y` as 0, so
+  the input layer now falls back to client-coordinate deltas.
+- The touch steering hint is shown once per browser session instead of on every
+  reload.
 
 ### Changed
 
 - Repository layout, docs and tooling now live under this project folder.
-- Island build at the high preset dropped from ~30 s to ~8-13 s: the grass
-  scatter uses cached biome and "uncertain zone" grids instead of exact layout
-  queries per attempt.
+- Island build at the high preset dropped from ~30 s to ~4-5 s on an
+  unthrottled desktop (up to ~13 s on a busy machine): the grass scatter uses
+  cached biome and "uncertain zone" grids instead of exact layout queries per
+  attempt.
 - Denser vegetation (≈9 000 trees and ≈740 000 grass tufts at high) without new
   draw calls; off-road slopes stay deliberately lighter.
 - Seabreeze Village keeps 12-16 houses on every seed (unlucky seeds used to

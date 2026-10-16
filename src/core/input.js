@@ -88,16 +88,36 @@ export function createInput(canvas) {
   window.addEventListener('gamepadconnected', onGamepadChange);
   window.addEventListener('gamepaddisconnected', onGamepadChange);
 
+  let lastClientX = 0;
+  let lastClientY = 0;
   function onPointerMove(e) {
     const w = window.innerWidth, h = window.innerHeight;
     pointer.x = (e.clientX / w) * 2 - 1;
     pointer.y = (e.clientY / h) * 2 - 1;
     if (dragging) {
-      pointerDelta.dx += e.movementX || 0;
-      pointerDelta.dy += e.movementY || 0;
+      // iOS Safari reports movementX/Y as 0 for touch pointers, so fall back
+      // to the client-coordinate delta before giving up.
+      let dx = e.movementX || 0;
+      let dy = e.movementY || 0;
+      if (!dx && !dy && e.pointerType !== 'mouse') {
+        dx = e.clientX - lastClientX;
+        dy = e.clientY - lastClientY;
+      }
+      pointerDelta.dx += dx;
+      pointerDelta.dy += dy;
+    }
+    lastClientX = e.clientX;
+    lastClientY = e.clientY;
+  }
+  function onPointerDown(e) {
+    dragging = true;
+    pointer.down = true;
+    lastClientX = e.clientX;
+    lastClientY = e.clientY;
+    if (canvas.requestPointerLock && e.pointerType !== 'touch') {
+      try { canvas.requestPointerLock?.(); } catch { /* ignore */ }
     }
   }
-  function onPointerDown(e) { dragging = true; pointer.down = true; if (canvas.requestPointerLock && e.pointerType !== 'touch') { try { canvas.requestPointerLock?.(); } catch { /* ignore */ } } }
   function onPointerUp() { dragging = false; pointer.down = false; }
   function onWheel(e) { pointer.wheel += clamp(e.deltaY, -200, 200); }
 
