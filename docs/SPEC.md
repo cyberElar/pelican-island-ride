@@ -307,7 +307,10 @@ Rider combines them: `createRider(ctx) -> { root, update(dt, state), parts }`,
 physics: acceleration/braking/steering with speed-dependent turn radius, lean,
 slope gravity, off-road friction by surface, water/beach limits, collisions
 vs `props.colliders` + landmark colliders, jump over small bumps at speed,
-bell/boost hooks. Owns `state.player` core fields.
+bell/boost hooks. Owns `state.player` core fields. Recovery rules put the rider
+back on the nearest road (and emit `player:unstuck` with a reason plus a toast):
+deep water, no progress against a collider for ~2.6 s with the throttle held,
+and crossing the edge of the world. `R` is the manual version.
 
 ### 4.17 `gameplay/camera.js`
 

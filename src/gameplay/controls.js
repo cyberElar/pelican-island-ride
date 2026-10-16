@@ -36,6 +36,21 @@ export function createControls(ctx) {
   const resetEvent = { position: _pos };
   const splashEvent = { name: "splash", volume: 0.8 };
   const rescueToast = { title: "落水了，已返回最近路面", sub: "Back on the road" };
+  const stuckToast = { title: "卡住了，已回到公路", sub: "Stuck · back on the road" };
+  const boundsToast = { title: "已到岛外，返回公路", sub: "Off the island · back on the road" };
+  const unstuckEvent = { reason: 'stuck' };
+
+  /**
+   * The one exit from a state the player cannot leave on their own (deep
+   * water, pinned against colliders, off the island): back to the nearest
+   * road, with a toast and a `player:unstuck` event carrying the reason.
+   */
+  function rescue(state, reason) {
+    reset(state);
+    unstuckEvent.reason = reason;
+    bus.emit('player:unstuck', unstuckEvent);
+    bus.emit('ui:toast', reason === 'water' ? rescueToast : reason === 'stuck' ? stuckToast : boundsToast);
+  }
 
   function surfaceAt(x, z) {
     if (layout.onRoad(x, z, 1.0)) return 'asphalt';
@@ -65,6 +80,8 @@ export function createControls(ctx) {
     p.boostStamina = 1;
     p.wheelSpin = 0;
     p.distanceTravelled = 0;
+    p.stuckTimer = 0;
+    p.stuckTrail = null;
     groundY = p.position.y;
   }
 
@@ -83,6 +100,8 @@ export function createControls(ctx) {
     p.airTime = 0;
     p.inWater = false;
     p.grounded = true;
+    p.stuckTimer = 0;
+    p.stuckTrail = null;
     groundY = p.position.y;
     resetEvent.position = p.position;
     bus.emit('player:reset', resetEvent);
@@ -100,9 +119,7 @@ export function createControls(ctx) {
     if (layout.waterDepth(p.position.x, p.position.z) > 0.45 && !layout.onRoad(p.position.x, p.position.z, 1)) {
       bus.emit('sfx', splashEvent);
       ctx.ocean?.splash?.(p.position.x, p.position.z, 1);
-      reset(state);
-      bus.emit('ui:toast', rescueToast);
-
+      rescue(state, 'water');
       return;
     }
 
@@ -197,6 +214,32 @@ export function createControls(ctx) {
           p.crash = 0.85;
         }
         p.speed *= 0.32;
+      }
+    }
+
+    // --- stuck / off-island rescue ---------------------------------------
+    // Water is handled above; these cover the two states a rider cannot leave
+    // on its own: pedalling without making progress (pinned against colliders,
+    // wedged in the river gorge, ...) and past the edge of the world. The
+    // manual escape stays on R -> reset().
+    if (Math.abs(_pos.x) > layout.HALF - 2 || Math.abs(_pos.z) > layout.HALF - 2) {
+      rescue(state, 'bounds');
+      return;
+    }
+    p.stuckTimer = (p.stuckTimer || 0) + dt;
+    if (p.stuckTimer >= 0.65) {
+      p.stuckTimer = 0;
+      if (!p.stuckTrail) p.stuckTrail = [];
+      p.stuckTrail.push(p.position.x, p.position.z);
+      if (p.stuckTrail.length > 8) p.stuckTrail.splice(0, 2);
+    }
+    if (throttle > 0.12 && p.stuckTrail && p.stuckTrail.length >= 8) {
+      const ndx = p.position.x - p.stuckTrail[0];
+      const ndz = p.position.z - p.stuckTrail[1];
+      // 0.75 m of progress over ~2.6 s is the line between "slow" and "stuck"
+      if (ndx * ndx + ndz * ndz < 0.75 * 0.75) {
+        rescue(state, 'stuck');
+        return;
       }
     }
 

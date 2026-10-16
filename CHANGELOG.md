@@ -41,6 +41,13 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 - A short loop of the ride through the start gate at the top of both READMEs
   (`screenshots/ride.gif`, recorded from the published build by
   `tools/dev/make-readme-gif.mjs`).
+- Automatic recovery from the states a rider cannot leave on their own: deep
+  water, being pinned against colliders without progress for ~2.6 s, and
+  crossing the edge of the world all return the rider to the nearest road with
+  a toast (`player:unstuck` carries the reason). The gameplay suite sweeps 20
+  edge points — map corners, open water, and cages of colliders — and asserts
+  every one either recovers onto a road or escapes by itself; the browser smoke
+  test wedges the rider in the real build.
 
 ### Fixed
 

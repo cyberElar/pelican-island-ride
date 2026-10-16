@@ -177,6 +177,51 @@ const resumed = await page.evaluate(() => window.__pelican.state.paused);
 check('Escape resumes the game', resumed === false);
 
 // --- world content sanity ----------------------------------------------------
+await page.evaluate(() => {
+  const P = window.__pelican;
+  const player = P.state.player;
+  const base = P.layout.pois.balloons.position;
+  window.__cage = [];
+  for (let k = 0; k < 6; k++) {
+    const a = (k / 6) * Math.PI * 2;
+    window.__cage.push({ x: base.x + Math.cos(a) * 1.7, z: base.z + Math.sin(a) * 1.7, r: 1.3 });
+  }
+  player.position.set(base.x, P.layout.heightAt(base.x, base.z) + 0.05, base.z);
+  player.heading = 0;
+  player.speed = 0;
+  P.ctx.colliders.push(...window.__cage);
+  window.__unstuck = [];
+  P.ctx.bus.on('player:unstuck', (e) => window.__unstuck.push((e && e.reason) || 'unknown'));
+});
+if (mobile) {
+  // the on-screen pad owns the axes on a phone, so hold the real throttle chip
+  const pad = await page.evaluate(() =>
+    document.querySelector('[data-testid="touch-throttle"]').getBoundingClientRect().toJSON());
+  await page.mouse.move(pad.x + pad.width / 2, pad.y + pad.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(3400);
+  await page.mouse.up();
+} else {
+  await page.evaluate(() => window.__pelican.ctx.input.setTouchAxes({ throttle: 1 }));
+  await page.waitForTimeout(3400);
+  await page.evaluate(() => window.__pelican.ctx.input.setTouchAxes({ throttle: 0 }));
+}
+const stuck = await page.evaluate(() => {
+  const P = window.__pelican;
+  for (const c of window.__cage) {
+    const i = P.ctx.colliders.indexOf(c);
+    if (i >= 0) P.ctx.colliders.splice(i, 1);
+  }
+  const player = P.state.player;
+  return {
+    rescued: window.__unstuck.length,
+    reason: window.__unstuck[0] || null,
+    line: P.layout.roadDistance(player.position.x, player.position.z),
+  };
+});
+check('a pinned rider is put back on the road', stuck.rescued >= 1 && stuck.line < 8,
+  `rescued=${stuck.rescued} reason=${stuck.reason} roadDistance=${stuck.line.toFixed(1)} m`);
+
 const world = await page.evaluate(() => {
   const P = window.__pelican;
   const veg = P.modules.vegetation?.stats || {};

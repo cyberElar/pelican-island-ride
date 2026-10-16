@@ -127,6 +127,62 @@ let rescued = 0; w.bus.on('player:reset', () => rescued++);
 createControls(w.ctx).update(.1, w.state);
 assert.equal(rescued, 1); assert.equal(w.state.player.speed, 0); assert.equal(w.state.player.airTime, 0);
 console.log('audio: pickup=1 discovery=1 crash=1; swept collision and water rescue PASSED');
+
+// --- recovery sweep: 20 edge points must never leave the rider stuck --------
+{
+  const H = layout.HALF;
+  const points = [];
+  for (const [x, z] of [[H - 3, H - 3], [-(H - 3), H - 3], [H - 3, -(H - 3)], [-(H - 3), -(H - 3)]]) {
+    points.push({ x, z, kind: 'map-corner' });
+  }
+  for (const id of ['lake', 'pool', 'seaStacks']) {
+    const p = layout.pois[id].position;
+    points.push({ x: p.x, z: p.z, kind: `water:${id}` });
+  }
+  // cages: six colliders ringed around a land spot - the worst case for the
+  // push-out, and exactly the "pinned, no progress" state the watchdog covers
+  let cages = 0;
+  for (let i = 0; i < 80 && cages < 13; i++) {
+    const a = (i / 80) * Math.PI * 2;
+    const cx = Math.cos(a) * 2000, cz = Math.sin(a) * 2000;
+    if (layout.heightAt(cx, cz) < 2 || layout.waterDepth(cx, cz) > 0.05) continue;
+    const cage = [];
+    for (let k = 0; k < 6; k++) {
+      const ka = (k / 6) * Math.PI * 2;
+      cage.push({ x: cx + Math.cos(ka) * 1.7, z: cz + Math.sin(ka) * 1.7, r: 1.3 });
+    }
+    points.push({ x: cx, z: cz, kind: 'collider-cage', cage });
+    cages++;
+  }
+  assert.ok(points.length >= 20, `the recovery sweep needs >= 20 points, built ${points.length}`);
+
+  const summary = { rescued: 0, escaped: 0, byReason: {} };
+  for (const point of points) {
+    const fx = fixture();
+    if (point.cage) fx.ctx.colliders.push(...point.cage);
+    const controls = createControls(fx.ctx);
+    const p = fx.state.player;
+    p.position.set(point.x, layout.heightAt(point.x, point.z) + 0.05, point.z);
+    p.heading = 0;
+    p.speed = 0;
+    const startX = p.position.x, startZ = p.position.z;
+    let rescued = false, reason = null;
+    fx.bus.on('player:unstuck', (e) => { rescued = true; reason = e && e.reason; });
+    for (let i = 0; i < 360 && !rescued; i++) controls.update(1 / 60, fx.state); // 6 s, throttle held by the fixture
+    const line = layout.roadDistance(p.position.x, p.position.z);
+    const travelled = Math.hypot(p.position.x - startX, p.position.z - startZ);
+    if (rescued) {
+      summary.rescued++;
+      summary.byReason[reason] = (summary.byReason[reason] || 0) + 1;
+      assert.ok(line < 8, `${point.kind} rescue did not land on a road (${line.toFixed(1)} m away)`);
+    } else {
+      assert.ok(travelled > 10, `${point.kind} at ${point.x.toFixed(0)},${point.z.toFixed(0)} neither escaped (${travelled.toFixed(1)} m) nor was rescued`);
+      summary.escaped++;
+    }
+  }
+  console.log(`recovery sweep: ${points.length} points -> ${JSON.stringify(summary)} PASSED`);
+}
+
 const cam = createCameraController(f.ctx); cam.setMode('chase');
 cam.cycleMode(); assert.equal(cam.mode, 'firstPerson'); cam.cycleMode(); assert.equal(cam.mode, 'cinematic'); cam.cycleMode(); assert.equal(cam.mode, 'chase');
 cam.flyby(f.state.player.position, .01); cam.update(.02, f.state); assert.equal(cam.mode, 'chase');
