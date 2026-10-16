@@ -9,6 +9,14 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Tree geometry: trunk and branch cylinders are open-ended (the caps are buried
+  or inside the canopy), which is RNG-neutral, so the island layout is
+  untouched. Built vegetation drops from 1.52 M to 1.32 M triangles and the
+  high preset's worst camera from 3.91 M to 3.70 M.
+- The medium preset's ground-cover draw distance moved from 1000 m to 900 m for
+  the last 3 k triangles; together with the tree trim its worst camera is now
+  2.44 M, inside the 2.5 M budget. Every draw-call and triangle budget in
+  `docs/research/quality-benchmarks.md` is met as of this change.
 - Bush geometry: the bramble's small blobs and the gorse's 5 cm blossoms are
   octahedra instead of icosahedra, the gorse grows 6-10 blossoms instead of
   10-18 and the twigs are open-ended. Bush triangles at the village camera drop

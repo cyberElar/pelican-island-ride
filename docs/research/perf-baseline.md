@@ -45,30 +45,29 @@ Raw per-view data: `docs/research/data/matrix-{ultra,high,medium,low}.json`.
 
 | Tier | Max draw calls | Max triangles | Max GPU ms/frame | Call budget | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| ultra | 471 | 5.58 M | 4.47 | ≤1500 (hard 2000) | pass |
-| high | 460 | 3.91 M | 3.52 | ≤1500 (hard 2000) | pass |
-| medium | 447 | 2.65 M | 2.43 | ≤900 | pass |
-| low | 362 | 1.37 M | 1.69 | ≤400 (mobile ≤300) | pass, above the mobile aspiration |
+| ultra | 471 | 5.32 M | 4.55 | ≤1500 (hard 2000) | pass |
+| high | 460 | 3.70 M | 3.74 | ≤1500 (hard 2000) | pass |
+| medium | 445 | 2.44 M | 2.97 | ≤900 | pass |
+| low | 362 | 1.28 M | 1.74 | ≤400 (mobile ≤300) | pass, above the mobile aspiration |
 
-Triangle budgets from `quality-benchmarks.md` (D4): high ≤5 M — pass (3.91 M,
-real headroom now); medium ≤2.5 M — 2.65 M, 6 % above the aspiration and
-closing; mobile ≤1.5 M — pass (1.37 M). Both numbers include the shadow-map
-pass.
+Triangle budgets from `quality-benchmarks.md` (D4): high ≤5 M — pass (3.70 M);
+medium ≤2.5 M — **pass** (2.44 M); mobile ≤1.5 M — pass (1.28 M). Both numbers
+include the shadow-map pass.
 
 ## high preset, per view
 
 | View | Calls | Triangles | GPU ms |
 | --- | --- | --- | --- |
-| gate-road | 384 | 2.23 M | 2.40 |
-| village | 447 | 3.62 M | 3.11 |
-| harbor | 301 | 1.64 M | 1.85 |
-| farm | 377 | 3.12 M | 2.75 |
-| windmill | 417 | 3.44 M | 3.05 |
-| bridge | 460 | 3.91 M | 3.52 |
-| waterfall | 376 | 3.22 M | 3.15 |
-| cliffs-sunset | 305 | 2.56 M | 2.48 |
-| peak-noon | 313 | 2.61 M | 2.53 |
-| lighthouse-night | 358 | 2.04 M | 2.17 |
+| gate-road | 384 | 2.20 M | 2.91 |
+| village | 447 | 3.41 M | 3.58 |
+| harbor | 301 | 1.63 M | 2.21 |
+| farm | 377 | 2.92 M | 2.94 |
+| windmill | 417 | 3.23 M | 3.53 |
+| bridge | 460 | 3.70 M | 3.74 |
+| waterfall | 376 | 3.05 M | 3.15 |
+| cliffs-sunset | 305 | 2.41 M | 2.75 |
+| peak-noon | 313 | 2.45 M | 2.62 |
+| lighthouse-night | 358 | 2.02 M | 2.38 |
 
 ## What the optimisation passes removed
 
@@ -111,6 +110,14 @@ bramble twigs are open-ended. Bush triangles at the village camera fell from
 0.96 M to **0.45 M** (−53 %) with no visible change at a metre or more; the
 medium preset's worst camera dropped from 3.01 M to 2.65 M triangles with it.
 
+The tree builders lost their cylinder caps (`openEnded: true`): a trunk cap is
+either buried or inside the canopy and costs 2 × radialSegments triangles, and
+the oak's 2-3 branch stubs add up. That is RNG-neutral — the island layout and
+the deterministic stream are untouched — and it took the built vegetation from
+1.52 M to **1.32 M** triangles (oak 188-248 → 154-214 per instance). The medium
+preset's ground-cover draw distance moved from 1000 m to 900 m for the last
+3 k triangles: its worst camera now sits at 2.44 M, inside the 2.5 M aspiration.
+
 ## Where the remaining cost is (village, high)
 
 Composition from the split probe (it re-snapshots after toggling module
@@ -119,25 +126,41 @@ the shares are what matter here).
 
 | Item | Draw calls | Triangles |
 | --- | --- | --- |
-| vegetation — trees (54 meshes) | 116 | 1.26 M |
+| vegetation — trees (55 meshes) | 120 | 1.06 M |
 | rider | 87 | 0.03 M |
 | props | 69 | 0.23 M |
-| shadow-map pass | 65 | 0.68 M |
+| shadow-map pass | 67 | 0.43 M |
 | landmarks | 63 | 0.04 M |
-| vegetation — flowers / rocks / reeds (44 meshes) | 37 | 0.67 M |
+| vegetation — flowers / rocks / reeds (54 meshes) | 25 | 0.64 M |
 | vegetation — bushes (9 meshes, 2 600 instances) | 24 | 0.45 M |
 | vegetation — grass (78 chunks, 23 drawn) | 23 | 0.99 M |
 | terrain / ocean | 11 | 0.51 M |
 | animals / collectibles / sky | 9 | 0.01 M |
 
-Next candidates, in order of value per unit of risk:
+## State of the list
 
-1. **trees**: 1.26 M triangles in 116 calls — now the biggest single block.
-   Trees are large and visible, so impostors or a geometry LOD need care.
-2. **medium triangles** (2.65 M) are 6 % above the 2.5 M aspiration; the tree
-   work or another grass-density trim at that preset would close it.
-3. **grass** (0.99 M) — the distance cull already removed 62 % of it; the next
-   lever would be a second, sparser far-field variant instead of a binary cut.
+Every budget in `quality-benchmarks.md` is met, so this pass closes:
+
+| Budget | Limit | Worst camera | Verdict |
+| --- | --- | --- | --- |
+| draw calls, ultra / high | ≤1500 (hard 2000) | 471 / 460 | pass |
+| draw calls, medium | ≤900 | 445 | pass |
+| draw calls, low | ≤400 | 362 | pass (the ≤300 mobile aspiration is not) |
+| triangles, high | ≤5 M | 3.70 M | pass |
+| triangles, medium | ≤2.5 M | 2.44 M | pass |
+| triangles, low (mobile-class) | ≤1.5 M | 1.28 M | pass |
+
+What is deliberately left:
+
+- **trees** are still the biggest geometry block (1.06 M triangles, 120 calls
+  at the village camera). The next real step is a near/far variant split —
+  detailed within ~150 m of the road, cheaper beyond — but that doubles the
+  tree mesh count and therefore the draw calls, which is a bad trade while the
+  frame budget still has 60 % of its headroom.
+- **grass** (0.99 M) would need a second, sparser far-field variant instead of
+  the current binary cut; the cut already removed 62 % of it at no visible cost.
+- the **≤300 mobile calls** aspiration is not reachable without cutting content:
+  the rider alone is 87 calls once merged, and the ten cameras sit at 362-471.
 
 Two notes on how this maps back to the audit's own wording
 (`quality-benchmarks.md` P1 #4):

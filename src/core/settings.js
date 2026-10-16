@@ -85,7 +85,7 @@ export const QUALITY_PRESETS = {
     oceanSegments: 128,
     cloudLayers: 2,
     viewDistance: 14000,
-    chunkRange: 1000,
+    chunkRange: 900,
     fogDensity: 0.000075,
   },
   high: {

@@ -427,7 +427,9 @@ export async function createVegetation(ctx) {
     const trunkR = 0.14 + h * 0.014;
     const trunkH = h * 0.78;
     const parts = newPartList();
-    addPart(parts, new THREE.CylinderGeometry(trunkR * 0.52, trunkR, trunkH, 6), 0, trs(0, trunkH * 0.5, 0));
+    // Open-ended: a trunk cap is either buried (bottom) or inside the canopy
+    // (top), so both caps are invisible and cost 2 x radialSegments triangles.
+    addPart(parts, new THREE.CylinderGeometry(trunkR * 0.52, trunkR, trunkH, 6, 1, true), 0, trs(0, trunkH * 0.5, 0));
 
     const layers = r.irange(4, 6);
     const baseY = h * r.range(0.24, 0.32);
@@ -450,7 +452,7 @@ export async function createVegetation(ctx) {
     const trunkR = 0.16 + h * 0.016;
     const trunkH = h * r.range(0.42, 0.52);
     const parts = newPartList();
-    addPart(parts, new THREE.CylinderGeometry(trunkR * 0.55, trunkR, trunkH, 7), 0, trs(0, trunkH * 0.5, 0));
+    addPart(parts, new THREE.CylinderGeometry(trunkR * 0.55, trunkR, trunkH, 7, 1, true), 0, trs(0, trunkH * 0.5, 0));
 
     const branches = r.irange(2, 3);
     for (let i = 0; i < branches; i++) {
@@ -458,7 +460,7 @@ export async function createVegetation(ctx) {
       const len = h * r.range(0.16, 0.3);
       const tilt = r.range(0.55, 0.95);
       const br = trunkR * r.range(0.34, 0.55);
-      const geo = new THREE.CylinderGeometry(br * 0.5, br, len, 5);
+      const geo = new THREE.CylinderGeometry(br * 0.5, br, len, 5, 1, true);
       addPart(parts, geo, 0, trs(
         Math.cos(a) * len * 0.3, trunkH + len * 0.32, Math.sin(a) * len * 0.3,
         Math.sin(a) * tilt, 0, -Math.cos(a) * tilt
@@ -489,7 +491,7 @@ export async function createVegetation(ctx) {
     const trunkH = h * 0.74;
     const parts = newPartList();
     const lean = r.range(-0.05, 0.05);
-    addPart(parts, new THREE.CylinderGeometry(trunkR * 0.6, trunkR, trunkH, 6), 0,
+    addPart(parts, new THREE.CylinderGeometry(trunkR * 0.6, trunkR, trunkH, 6, 1, true), 0,
       trs(0, trunkH * 0.5, 0, 0, 0, lean));
     const topX = -Math.sin(lean) * trunkH;
 
@@ -547,7 +549,7 @@ export async function createVegetation(ctx) {
     const h = r.range(6, 10);
     const trunkR = 0.18 + h * 0.026;
     const parts = newPartList();
-    addPart(parts, new THREE.CylinderGeometry(trunkR * 0.5, trunkR, h * 0.92, 6), 0, trs(0, h * 0.46, 0));
+    addPart(parts, new THREE.CylinderGeometry(trunkR * 0.5, trunkR, h * 0.92, 6, 1, true), 0, trs(0, h * 0.46, 0));
 
     const layers = 4;
     for (let i = 0; i < layers; i++) {
@@ -578,7 +580,7 @@ export async function createVegetation(ctx) {
       const t0 = i / segments, t1 = (i + 1) / segments;
       const am = leanTotal * (t0 + t1) * 0.5;
       const dx = Math.sin(am), dy = Math.cos(am);
-      const geo = new THREE.CylinderGeometry(trunkR * 0.8, trunkR, segLen * 1.06, 6);
+      const geo = new THREE.CylinderGeometry(trunkR * 0.8, trunkR, segLen * 1.06, 6, 1, true);
       addPart(parts, geo, 0, trs(px + dx * segLen * 0.5, py + dy * segLen * 0.5, 0, 0, 0, -am));
       geo.dispose();
       px += dx * segLen;
