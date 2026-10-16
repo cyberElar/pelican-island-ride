@@ -131,8 +131,11 @@ await page.evaluate(() => window.__pelican.start('ride'));
 await page.waitForTimeout(400);
 // The overlay refreshes four times a second off the frame loop; poll instead
 // of assuming it has painted by now.
+// The software-GL CI runner runs the first frames after boot at ~1 fps, where
+// 0.25 s of accumulated frame time takes several seconds of wall clock, so the
+// window is generous.
 await page
-  .waitForFunction(() => /fps \d+/.test(window.__pelican.debugText() || ''), null, { timeout: 8000 })
+  .waitForFunction(() => /fps \d+/.test(window.__pelican.debugText() || ''), null, { timeout: 60000 })
   .catch(() => {});
 
 const hudOnStart = await page.evaluate(() => ({
