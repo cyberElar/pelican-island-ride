@@ -979,6 +979,14 @@ export function createMenus(ctx = {}, opts = {}) {
       return;
     }
     if (key === 'Escape' || key === 'Esc') {
+      if (currentScreen === 'pause') {
+        // The pause card advertises "ESC OR TAP TO RESUME", and gameplay input
+        // is disabled while paused, so this is the only place that Escape can
+        // resume from.
+        ev.preventDefault();
+        call(options.onResume);
+        return;
+      }
       if (currentScreen === 'settings' || currentScreen === 'help' || currentScreen === 'about') {
         ev.preventDefault();
         show(returnTo);

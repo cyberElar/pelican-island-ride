@@ -1352,9 +1352,15 @@ export async function createLandmarks(ctx) {
   // =========================================================================
 
   {
-    const p = layout.pois.gates.position;
+    const gatePoi = layout.pois.gates;
+    const p = gatePoi.position;
     const baseY = ground(p.x, p.z) - 0.3;
-    const rot = typeof p.heading === 'number' ? p.heading : 0;
+    // The gate spans its local X, so it has to be rotated onto the road normal
+    // at the start line. This used to read `.heading` off the position Vector3
+    // (always undefined), so the arch was built 77 degrees out and one of its
+    // pillars stood exactly on the racing line - every ride crashed a few
+    // metres after the start.
+    const rot = typeof gatePoi.heading === 'number' ? gatePoi.heading : 0;
     await slice();
     const scope = createPiece('gates', p.x, p.z, baseY, rot);
     const { b, holder } = scope;

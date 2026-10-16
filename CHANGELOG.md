@@ -36,6 +36,14 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The start/finish gate was built without its heading (the code read `.heading`
+  off the position vector, which is always undefined): the arch sat 77 degrees
+  out and one of its pillar colliders stood on the racing line, so every ride
+  crashed a few metres after the start. The piece now rotates onto the road
+  normal, and the landmark test asserts both pillar colliders clear the road.
+- `Escape` now resumes from the pause screen, as the card always claimed:
+  gameplay input is disabled while paused, so the menu handler is the only
+  place that can catch it.
 - The HUD never updated: speedometer, clock, compass and minimap were frozen at
   their initial values.
 - "Explored X / 28" could never complete; the HUD and minimap now share the

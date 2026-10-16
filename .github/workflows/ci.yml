@@ -94,3 +94,29 @@ jobs:
 
       - name: README links resolve
         run: node tools/dev/check-readme-links.mjs
+
+  smoke:
+    name: browser smoke (headless chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the bundle
+        run: npm run build
+
+      # playwright-core ships no browser; install the matching chromium build
+      # (1.64.0 == the pinned playwright-core in package-lock.json).
+      - name: Install chromium
+        run: npx --yes playwright@1.64.0 install --with-deps chromium
+
+      # Boots the built game from file://, rides, pauses, resumes and asserts
+      # that nothing logged an error and nothing was fetched from the network.
+      - name: Browser smoke test
+        run: node tools/dev/smoke-ci.mjs

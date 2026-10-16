@@ -174,6 +174,27 @@ assert.ok(buildMs < 6000, `build must stay under 6 s, took ${buildMs.toFixed(1)}
   console.log(`emitters: ${JSON.stringify(landmarks.emitters)}`);
 }
 
+// The start gate spans the road ------------------------------------------
+{
+  const gate = layout.pois.gates;
+  const pillars = landmarks.colliders.filter((c) => c.r === 1);
+  assert.equal(pillars.length, 2, `the start gate needs exactly two pillar colliders, got ${pillars.length}`);
+  for (const c of pillars) {
+    const line = layout.roadDistance(c.x, c.z);
+    assert.ok(line > 4.5, `a start-gate pillar sits ${line.toFixed(2)} m from the road centre line - it must clear the racing line`);
+    assert.ok(Math.hypot(c.x - gate.position.x, c.z - gate.position.z) < 8, 'the pillars must straddle the gate POI');
+    assert.ok(Math.hypot(c.x - gate.position.x, c.z - gate.position.z) > 4, 'the pillars must actually be apart');
+  }
+  // ...and they must straddle it across the road, not along it: for a Y
+  // rotation of `heading`, the world lateral axis is (cos h, -sin h).
+  const [a, b] = pillars;
+  const span = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+  const lateral = ((b.x - a.x) * Math.cos(gate.heading) + (b.z - a.z) * -Math.sin(gate.heading)) / span;
+  const offAxis = Math.acos(Math.min(1, Math.abs(lateral))) * 180 / Math.PI;
+  assert.ok(offAxis < 5, `the start gate is rotated ${offAxis.toFixed(1)} degrees off the road normal`);
+  console.log(`start-gate pillars straddle the road (${offAxis.toFixed(2)} deg off-axis, ${(layout.roadDistance(a.x, a.z)).toFixed(1)} m / ${(layout.roadDistance(b.x, b.z)).toFixed(1)} m from the centre line)`);
+}
+
 // parts --------------------------------------------------------------------
 {
   const parts = landmarks.parts;
