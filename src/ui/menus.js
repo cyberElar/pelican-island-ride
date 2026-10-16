@@ -92,6 +92,8 @@ const KEY_ROWS = [
   ['M', '地图 MINIMAP'],
   ['B', '车铃 BELL'],
   ['F', '取景网格 PHOTO GRID'],
+  ['V', '摄影滤镜 PHOTO FILTER'],
+  ['X', '导出照片 SAVE PHOTO'],
   ['T', '时间流转 TIME OF DAY'],
   ['R', '回到路面 RETURN TO ROAD'],
   ['N', '静音 MUTE'],

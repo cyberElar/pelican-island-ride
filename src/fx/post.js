@@ -68,6 +68,7 @@ const GradeShader = {
     uSaturation: { value: 1.12 },
     uContrast: { value: 1.09 },
     uLift: { value: 0.012 },
+    uTint: { value: new THREE.Vector3(1, 1, 1) },
     uDofAmount: { value: 0.0 },
     uFocusDist: { value: 12.0 },
     uAperture: { value: 0.35 },
@@ -87,6 +88,7 @@ const GradeShader = {
     uniform sampler2D tDepth;
     uniform float uTime, uVignette, uGrain, uCA, uSaturation, uContrast, uLift;
     uniform float uDofAmount, uFocusDist, uAperture, uNear, uFar, uFade;
+    uniform vec3 uTint;
     uniform vec2 uResolution;
     varying vec2 vUv;
 
@@ -140,6 +142,8 @@ const GradeShader = {
       vec3 highTint = vec3(1.055, 1.005, 0.945);
       vec3 tint = mix(shadowTint, highTint, smoothstep(0.10, 0.88, luma));
       col *= tint;
+      // photo-filter tint multiplier
+      col *= uTint;
       // gentle film curve: rolls off the highlights, keeps the toe slightly
       // lifted so blacks stay filmic instead of crushed
       col = col / (1.0 + max(col - 1.0, 0.0) * 0.26);
@@ -351,6 +355,21 @@ export function createPost(engine, ctx) {
     setPhoto({ focusDist, aperture }) {
       if (typeof focusDist === 'number') photo.focusDist = focusDist;
       if (typeof aperture === 'number') photo.aperture = aperture;
+    },
+    /**
+     * Photo-mode filter: grade-parameter preset (saturation / contrast / lift /
+     * extra grain / tint multiplier). Pass null to restore the base look.
+     */
+    setPhotoFilter(filter) {
+      const f = filter || {};
+      const u = gradePass.uniforms;
+      const active = photo.active;
+      u.uSaturation.value = typeof f.saturation === 'number' ? f.saturation : (active ? 1.0 : 1.02);
+      u.uContrast.value = typeof f.contrast === 'number' ? f.contrast : 1.09;
+      u.uLift.value = typeof f.lift === 'number' ? f.lift : 0.012;
+      u.uGrain.value = (preset.grain ? (active ? 0.35 : 0.6) : 0) + (typeof f.grain === 'number' ? f.grain : 0);
+      const t = Array.isArray(f.tint) ? f.tint : null;
+      u.uTint.value.set(t ? t[0] : 1, t ? t[1] : 1, t ? t[2] : 1);
     },
     setFade(v) { gradePass.uniforms.uFade.value = clamp01(v); },
     setSize(w, h) {

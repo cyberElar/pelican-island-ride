@@ -70,8 +70,10 @@ const STRINGS = {
     boot: '正在生成小岛…',
     photo: '摄影模式 PHOTO',
     gridLabel: '网格 F',
+    filterLabel: '滤镜 V',
+    saveLabel: '导出 X',
     camera: '相机',
-    hint: '滚轮缩放 · 方向键移动 · F 切换网格 · P 退出',
+    hint: '滚轮缩放 · 方向键移动 · F 网格 · V 滤镜 · X 导出 · P 退出',
     tips: [
       '提示：按 B 按铃',
       '提示：夜间路上有萤火虫',
@@ -101,8 +103,10 @@ const STRINGS = {
     boot: 'BUILDING THE ISLAND…',
     photo: 'PHOTO MODE',
     gridLabel: 'GRID F',
+    filterLabel: 'FILTER V',
+    saveLabel: 'SAVE X',
     camera: 'CAMERA',
-    hint: 'Scroll zoom · Arrows move · F grid · P exit',
+    hint: 'Scroll zoom · Arrows move · F grid · V filter · X save · P exit',
     tips: [
       'TIP: press B for the bell',
       'TIP: fireflies light the road at night',
@@ -424,7 +428,11 @@ export function createHUD(ctx = {}, opts = {}) {
     '    <div class="pi-photo__filter" id="pi-photo-filter" data-testid="photo-filter">—</div>',
     '  </div>',
     '  <div class="pi-photo__hint" id="pi-photo-hint" data-testid="photo-hint">滚轮缩放 · 方向键移动 · F 切换网格 · P 退出</div>',
-    '  <button type="button" class="pi-photo__gridchip is-on" id="pi-photo-gridchip" data-testid="photo-grid-toggle">网格 F</button>',
+    '  <div class="pi-photo__chips" id="pi-photo-chips">',
+    '    <button type="button" class="pi-photo__chip is-on" id="pi-photo-gridchip" data-testid="photo-grid-toggle">网格 F</button>',
+    '    <button type="button" class="pi-photo__chip" id="pi-photo-filterchip" data-testid="photo-filter-cycle">滤镜 V</button>',
+    '    <button type="button" class="pi-photo__chip" id="pi-photo-savechip" data-testid="photo-save">导出 X</button>',
+    '  </div>',
     '</div>',
     '<div class="pi-toasts" id="pi-toasts" data-testid="toasts" role="log" aria-live="polite" aria-relevant="additions"></div>',
     '<div class="pi-caption" id="pi-caption" data-testid="caption" role="status" aria-live="off"></div>',
@@ -461,6 +469,7 @@ export function createHUD(ctx = {}, opts = {}) {
     'pi-discovery-en', 'pi-discovery-sub', 'pi-paused', 'pi-paused-title',
     'pi-paused-sub', 'pi-photo', 'pi-photo-grid', 'pi-photo-mode', 'pi-photo-focal',
     'pi-photo-filter', 'pi-photo-hint', 'pi-photo-gridchip', 'pi-toasts', 'pi-damage',
+    'pi-photo-filterchip', 'pi-photo-savechip',
     'pi-loading', 'pi-loading-fill', 'pi-loading-title', 'pi-loading-label', 'pi-loading-pct',
     'pi-loading-tip', 'pi-loading-bar', 'pi-caption', 'pi-sr-status', 'pi-damage-label',
     'pi-hud-help', 'pi-help-label',
@@ -648,6 +657,8 @@ export function createHUD(ctx = {}, opts = {}) {
     if (E['pi-loading-title']) E['pi-loading-title'].textContent = s.boot;
     if (E['pi-photo-mode']) E['pi-photo-mode'].textContent = s.photo;
     if (E['pi-photo-gridchip']) E['pi-photo-gridchip'].textContent = s.gridLabel;
+    if (E['pi-photo-filterchip']) E['pi-photo-filterchip'].textContent = s.filterLabel;
+    if (E['pi-photo-savechip']) E['pi-photo-savechip'].textContent = s.saveLabel;
     if (E['pi-photo-hint']) E['pi-photo-hint'].textContent = s.hint;
     if (E['pi-camera-value']) applyCameraMode();
     if (E['pi-help-label']) E['pi-help-label'].textContent = s.help;
@@ -1505,6 +1516,20 @@ export function createHUD(ctx = {}, opts = {}) {
   if (gridChip && typeof gridChip.addEventListener === 'function') {
     gridChip.addEventListener('click', onGridChip, { passive: true });
   }
+
+  // Filter cycle / photo save are owned by main.js; the chips just forward.
+  const forwardChip = (id, type) => {
+    const chip = E[id];
+    if (!chip || typeof chip.addEventListener !== 'function') return;
+    chip.addEventListener('click', (ev) => {
+      if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+      try {
+        if (bus && typeof bus.emit === 'function') bus.emit(type, {});
+      } catch { /* the HUD must never throw from a click */ }
+    }, { passive: true });
+  };
+  forwardChip('pi-photo-filterchip', 'photo:filter');
+  forwardChip('pi-photo-savechip', 'photo:save');
 
   // -- mount ----------------------------------------------------------------
   buildCompass();

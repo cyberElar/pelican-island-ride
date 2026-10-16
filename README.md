@@ -40,8 +40,9 @@ embers, waterfall mist, sea spray.
 **Gameplay** — arcade bicycle physics (slope gravity, surface-dependent friction,
 lean, jumps, crashes), 40 hidden golden feathers, 25 discoverable landmarks with
 letterboxed name cards, an 8-checkpoint ring-road time trial with a stored best
-lap, photo mode with depth of field, day/night cycle, weather, minimap,
-speedometer, compass.
+lap (and a finish presentation), photo mode with depth of field, four grade
+filters and PNG export, day/night cycle, weather, minimap, speedometer,
+compass.
 
 **The look** — custom sky shader (sun, moon, stars, milky way, two cloud layers),
 Gerstner-wave ocean with shore foam, four-way blended terrain splat, PMREM
@@ -64,6 +65,8 @@ of day and your speed.
 | `Space` | hard brake |
 | `C` | camera: chase → first person → cinematic |
 | `P` | photo mode (wheel = zoom, `F` = grid) |
+| `V` | photo filter: original / sea film / golden hour / silver mono |
+| `X` | save the current frame as a PNG |
 | `M` | minimap |
 | `B` | bell |
 | `R` | return to the nearest road |

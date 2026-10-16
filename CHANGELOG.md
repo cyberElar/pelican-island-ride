@@ -27,6 +27,9 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 - A finish presentation for the time trial: a cut to a celebration angle, the
   director's orbit, confetti and sparkle bursts, a held letterbox and a
   best-lap toast (any real input hands control back).
+- Photo mode: four real grade filters (original / sea film / golden hour /
+  silver mono) cycled with `V` or the on-screen chip, and `X` (or the chip)
+  exports the current frame as a PNG.
 
 ### Fixed
 

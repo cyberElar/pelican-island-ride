@@ -302,15 +302,84 @@ async function boot() {
     modules.camera?.setMode(mode);
   }
 
+  // Photo-mode filters (audit D8): real grade presets, not just a label.
+  const PHOTO_HINT = '滚轮变焦 · F 网格 · V 滤镜 · X 导出 · P 退出';
+  const PHOTO_FILTERS = [
+    { zh: '原片', en: 'ORIGINAL', grade: null },
+    { zh: '海风胶片', en: 'SEA FILM', grade: { saturation: 1.06, contrast: 1.12, lift: 0.03, grain: 0.22, tint: [0.99, 1.0, 1.045] } },
+    { zh: '金色时刻', en: 'GOLDEN HOUR', grade: { saturation: 1.26, contrast: 1.07, lift: 0.008, grain: 0.1, tint: [1.06, 1.0, 0.9] } },
+    { zh: '银盐黑白', en: 'SILVER MONO', grade: { saturation: 0, contrast: 1.2, lift: 0.02, grain: 0.35, tint: [1, 1, 1] } },
+  ];
+  let photoFilterIndex = 0;
+
+  function photoFilterLabel() {
+    const f = PHOTO_FILTERS[photoFilterIndex];
+    return `${f.zh} · ${f.en}`;
+  }
+
+  function applyPhotoFilter() {
+    post.setPhotoFilter?.(state.photoMode ? PHOTO_FILTERS[photoFilterIndex].grade : null);
+  }
+
+  function cyclePhotoFilter(step = 1) {
+    photoFilterIndex = (photoFilterIndex + step + PHOTO_FILTERS.length) % PHOTO_FILTERS.length;
+    applyPhotoFilter();
+    if (state.photoMode) {
+      hud.setPhotoMode?.(true, {
+        fov: modules.camera?.photo?.fov ?? 45,
+        filterName: photoFilterLabel(),
+        hint: PHOTO_HINT,
+      });
+      const f = PHOTO_FILTERS[photoFilterIndex];
+      hud.toast?.(`滤镜 · ${f.zh}`, f.en);
+    }
+  }
+
+  /** PNG export of the current frame (audit D8: photo mode never saved). */
+  function exportPhoto() {
+    try {
+      // Re-render inside this task so the drawing buffer is readable even when
+      // the canvas was created without preserveDrawingBuffer.
+      try { engine.render?.(); } catch { /* fall through and try anyway */ }
+      const canvas = (engine.renderer && engine.renderer.domElement) || document.getElementById('game-canvas');
+      if (!canvas || typeof canvas.toBlob !== 'function') return;
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        try {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `pelican-island-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+          hud.toast?.('照片已导出', 'PHOTO SAVED');
+          bus.emit('sfx', { name: 'pickup', volume: 0.8 });
+        } catch (err) {
+          console.error('[pelican] photo save failed', err);
+        }
+      }, 'image/png');
+    } catch (err) {
+      console.error('[pelican] photo export failed', err);
+    }
+  }
+
   function enterPhotoMode(on) {
     state.photoMode = !!on;
     if (state.photoMode) {
       modules.camera?.setMode('photo');
       post.setMode('photo');
-      hud.setPhotoMode?.(true, { fov: modules.camera?.photo?.fov ?? 45, filterName: '海风胶片', hint: '滚轮 变焦 · F 网格 · P 退出' });
+      applyPhotoFilter();
+      hud.setPhotoMode?.(true, {
+        fov: modules.camera?.photo?.fov ?? 45,
+        filterName: photoFilterLabel(),
+        hint: PHOTO_HINT,
+      });
       hud.setLetterbox?.(false);
     } else {
       post.setMode('ride');
+      post.setPhotoFilter?.(null);
       hud.setPhotoMode?.(false, null);
       setCamera('chase');
     }
@@ -497,6 +566,8 @@ async function boot() {
 
   bus.on('sfx', () => { /* audio module listens to the bus itself */ });
   bus.on('ui:toast', (p) => hud.toast?.(p?.title ?? '', p?.sub ?? ''));
+  bus.on('photo:filter', () => cyclePhotoFilter(1));
+  bus.on('photo:save', () => exportPhoto());
   bus.on('poi:discovered', (p) => {
     if (p?.position) hud.setLetterbox?.(true);
   });
@@ -698,6 +769,8 @@ async function boot() {
     } else if (state.photoMode) {
       if (input.pressed('grid')) hud.togglePhotoGrid?.();
       if (input.pressed('map')) hud.toggleMinimap?.();
+      if (input.pressed('filter')) cyclePhotoFilter(1);
+      if (input.pressed('export')) exportPhoto();
     }
   }
 
@@ -808,6 +881,8 @@ async function boot() {
     enterPhoto: (on) => enterPhotoMode(on),
     race: () => modules.events?.startRace?.(state),
     resetProgress: () => resetGameplayProgress(),
+    cycleFilter: (step) => cyclePhotoFilter(step || 1),
+    savePhoto: () => exportPhoto(),
   };
 }
 

@@ -345,7 +345,8 @@ optional light rain with puddle darkening. Cheap billboard systems.
 HUD: speedometer (analog-ish arc + digital km/h), collected feathers counter,
 compass strip, minimap (canvas, terrain height texture + road + POI icons +
 player arrow; toggled by M), discovery name cards, race timer, photo-mode
-overlay (grid, focal length), toasts, vignette-safe letterbox for
+overlay (grid, focal length, filter name, filter/save chips; the four filters
+are real grade presets and X exports the frame as a PNG), toasts, vignette-safe letterbox for
 cinematic moments, keyboard hints. Menus: title screen with poster art
 (gradient + big type), start/free-ride/photo/settings, settings (quality,
 volume, time of day, language, comfort & accessibility), pause menu, and a

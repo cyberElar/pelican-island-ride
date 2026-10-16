@@ -204,7 +204,7 @@ eq(document.getElementById('pi-photo-focal').textContent, '26', 'focal length fr
 eq(document.getElementById('pi-photo-filter').textContent, '胶片', 'filter name readout');
 eq(
   document.getElementById('pi-photo-hint').textContent,
-  '滚轮缩放 · 方向键移动 · F 切换网格 · P 退出',
+  '滚轮缩放 · 方向键移动 · F 网格 · V 滤镜 · X 导出 · P 退出',
   'photo-mode hint line'
 );
 ok(document.querySelector('[data-testid="photo-overlay"]').classList.contains('is-on'), 'photo overlay shows');
