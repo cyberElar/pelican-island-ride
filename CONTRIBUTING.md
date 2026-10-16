@@ -23,7 +23,8 @@ git clone https://github.com/cyberElar/pelican-island-ride.git
 cd pelican-island-ride
 npm ci
 npm run serve      # http://localhost:5577/
-npm test           # 8 module suites, headless
+npm test           # 11 module suites, headless
+npm run smoke      # browser smoke test (headless chromium)
 ```
 
 `node_modules` needs no network beyond `npm ci`: three.js, esbuild and the dev

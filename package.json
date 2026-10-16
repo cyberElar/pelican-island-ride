@@ -12,6 +12,7 @@
     "shot": "node tools/screenshot.mjs",
     "shots:readme": "node tools/dev/make-readme-shots.mjs",
     "test": "node tools/dev/test-all.mjs",
+    "smoke": "node tools/dev/smoke-ci.mjs",
     "serve": "node tools/serve.mjs"
   },
   "keywords": [],

@@ -10,6 +10,7 @@
  *   node tools/dev/smoke-ci.mjs                 # dist/ build
  *   node tools/dev/smoke-ci.mjs --root          # the committed root bundle
  *   node tools/dev/smoke-ci.mjs --quality high
+ *   node tools/dev/smoke-ci.mjs --mobile        # emulated phone + touch pad
  *
  * Browser: $PELICAN_BROWSER, else $CHROME_PATH, else the usual Windows
  * Edge/Chrome paths, else Playwright's own chromium (CI installs it with
@@ -28,6 +29,7 @@ const arg = (n, d) => {
 };
 const quality = arg('quality', 'low');
 const seed = arg('seed', '20261014');
+const mobile = process.argv.includes('--mobile');
 const useRoot = process.argv.includes('--root') || !existsSync(path.join(root, 'dist', 'index.html'));
 const entry = useRoot ? path.join(root, 'index.html') : path.join(root, 'dist', 'index.html');
 
@@ -60,7 +62,18 @@ const check = (name, ok, extra = '') => {
 };
 
 const browser = await chromium.launch(launchOpts);
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
+console.log(`browser: ${browser.version()} (${SYSTEM_BROWSER || 'playwright chromium'})${mobile ? ' · emulated phone' : ''}`);
+const page = await browser.newPage(
+  mobile
+    ? {
+      viewport: { width: 390, height: 844 },
+      deviceScaleFactor: 3,
+      isMobile: true,
+      hasTouch: true,
+      userAgent: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36',
+    }
+    : { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 }
+);
 
 // The ANGLE/D3D11 shader compiler emits this double-precision notice for the
 // terrain shader on every run; it is not actionable and does not appear on the
@@ -116,9 +129,31 @@ check('first-run tutorial strip is shown', hudOnStart.tutorial === true);
 check('debug overlay reports fps and calls', /fps \d+/.test(hudOnStart.debug) && /calls/.test(hudOnStart.debug), hudOnStart.debug.split('\n')[0]);
 
 // --- real input: pedal for a moment -----------------------------------------
-await page.keyboard.down('w');
-await page.waitForTimeout(2500);
-await page.keyboard.up('w');
+if (mobile) {
+  const pad = await page.evaluate(() => {
+    const root = document.getElementById('pi-touch');
+    const throttle = document.querySelector('[data-testid="touch-throttle"]');
+    const zone = document.querySelector('[data-testid="touch-steer-zone"]');
+    return {
+      visible: !!root && root.classList.contains('is-on'),
+      throttle: !!throttle,
+      zone: !!zone,
+      throttleBox: throttle ? throttle.getBoundingClientRect().toJSON() : null,
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+    };
+  });
+  check('virtual pad is visible on a phone', pad.visible && pad.throttle && pad.zone);
+  check('layout does not overflow horizontally', pad.overflow <= 1, `${pad.overflow} px`);
+  const box = pad.throttleBox;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(2500);
+  await page.mouse.up();
+} else {
+  await page.keyboard.down('w');
+  await page.waitForTimeout(2500);
+  await page.keyboard.up('w');
+}
 const ride = await page.evaluate(() => ({
   speed: window.__pelican.state.player.speed,
   hudSpeed: document.getElementById('pi-speedo-value')?.textContent || '',

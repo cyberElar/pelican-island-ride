@@ -33,6 +33,11 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 - First-run tutorial: a three-step goal strip (set off, ring the bell, collect
   a feather) that is non-blocking and remembered per browser, plus an
   fps / frame-time / draw-call overlay behind `?debug=1`.
+- A browser-level smoke test (`tools/dev/smoke-ci.mjs`, run by the `smoke` job
+  in CI): it boots the built game from `file://` in headless chromium —
+  desktop and emulated phone — rides, pauses, resumes, and fails on any console
+  error or external request. Results and the browser/device matrix are in
+  `docs/research/browser-matrix.md`.
 
 ### Fixed
 

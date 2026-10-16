@@ -114,7 +114,8 @@ the preset manually, `?debug=1` shows an fps / frame-time / draw-call overlay.
 npm install          # three + esbuild + playwright-core (dev only)
 npm run build        # -> dist/game.js (minified)
 npm run build:publish# also refresh the playable root copies (game.js, styles.css)
-npm test             # 8 module test suites, all headless in Node
+npm test             # 11 module test suites, all headless in Node
+npm run smoke        # browser smoke test (headless chromium, file:// build)
 npm run serve        # dev server at http://localhost:5577/
 npm run shots:readme # regenerate screenshots/ from the root build
 ```
