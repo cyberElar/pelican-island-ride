@@ -38,6 +38,9 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
   desktop and emulated phone — rides, pauses, resumes, and fails on any console
   error or external request. Results and the browser/device matrix are in
   `docs/research/browser-matrix.md`.
+- A short loop of the ride through the start gate at the top of both READMEs
+  (`screenshots/ride.gif`, recorded from the published build by
+  `tools/dev/make-readme-gif.mjs`).
 
 ### Fixed
 

@@ -10,6 +10,8 @@
 
 [English README](README.md)
 
+![黄金时刻穿过起点门](screenshots/ride.gif)
+
 ![黄金时刻的环岛骑行](screenshots/ride.jpg)
 
 ![西崖落日](screenshots/sunset.jpg)

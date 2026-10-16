@@ -12,6 +12,8 @@
 
 [中文说明 · Chinese README](README.zh-CN.md)
 
+![riding through the start gate, golden hour](screenshots/ride.gif)
+
 ![riding around golden hour](screenshots/ride.jpg)
 
 ![sunset at the west cliffs](screenshots/sunset.jpg)

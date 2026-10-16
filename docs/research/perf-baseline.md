@@ -104,3 +104,16 @@ Next candidates, in order of value per unit of risk:
    everything beyond ~60 m at high (the perceived radius of the bike shadow).
 4. **medium triangles** (2.99 M) sit above the 2.5 M aspiration; the same three
    items cover it.
+
+Two notes on how this maps back to the audit's own wording
+(`quality-benchmarks.md` P1 #4):
+
+- It suggested an LOD pass for *high-poly landmarks*. Measured, the landmarks
+  cost 0.01–0.02 M triangles per view — they are already merged geometry with
+  shared materials. The polygons are in the vegetation (grass 2.59 M, trees
+  1.26 M, bushes 0.96 M), so the LOD went into the ground cover, where the
+  budget pressure actually was.
+- Its "mobile" budget row maps to this matrix's **low** tier (306 calls,
+  1.45 M triangles) and to `smoke-ci.mjs --mobile`, which runs the phone-sized
+  viewport and touch input end to end. Real-device frame rates are still
+  unmeasured — see the gaps in `browser-matrix.md`.

@@ -12,6 +12,7 @@ ANGLE D3D11). Every row below passes on the current `main`.
 | Lighthouse 13.5, mobile preset + desktop preset | `docs/research/lighthouse-baseline.md` | performance / accessibility / best-practices / SEO scores and blocking time |
 | Ten fixed cameras x four presets | `docs/research/perf-baseline.md` | draw calls, triangles and GPU ms per camera, per tier |
 | Screenshot pipeline (6 shots) | `npm run shots:readme` | the published root bundle renders the hero scenes with no console errors |
+| README loop (`screenshots/ride.gif`, 560x315, 36 frames @ 8 fps) | `node tools/dev/make-readme-gif.mjs` | the recorded ride through the start gate at golden hour, straight from the published build |
 
 The smoke test is not ceremony: it found the start-gate bug (the arch was built
 77 degrees out and one pillar collider sat on the racing line, so every ride
