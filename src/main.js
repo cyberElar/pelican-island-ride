@@ -6,7 +6,9 @@
  *   { group?, update(dt, state), setQuality?(level), colliders?, ... }
  */
 
-import * as THREE from 'three';
+// Named imports only: passing the whole namespace through `ctx` used to keep
+// every three.js export (and its dead code) in the bundle.
+import { Vector3, Quaternion, Color } from 'three';
 import { createEngine } from './core/engine.js';
 import { createTextureLibrary } from './core/textures.js';
 import { createLayout } from './world/layout.js';
@@ -124,8 +126,8 @@ async function boot() {
     muted: false,
     compassHeading: 0,
     player: {
-      position: new THREE.Vector3(),
-      velocity: new THREE.Vector3(),
+      position: new Vector3(),
+      velocity: new Vector3(),
       heading: 0,
       speed: 0,
       steer: 0,
@@ -146,8 +148,8 @@ async function boot() {
       brake: 0,
     },
     camera: {
-      position: new THREE.Vector3(),
-      quaternion: new THREE.Quaternion(),
+      position: new Vector3(),
+      quaternion: new Quaternion(),
       mode: 'tour',
       fov: 55,
       compassHeading: 0,
@@ -158,8 +160,8 @@ async function boot() {
     race: { active: false, checkpoint: 0, time: 0, best: null, finished: false, countdown: 0 },
     wind: { x: 0.7, z: 0.5, strength: 0.35, gust: 0 },
     weather: { rain: 0, cloudiness: 0.35, fogBoost: 0 },
-    sun: { dir: new THREE.Vector3(0.3, 0.5, 0.8), color: new THREE.Color('#fff4e2'), intensity: 3 },
-    moon: { dir: new THREE.Vector3(-0.3, 0.5, -0.8), intensity: 0 },
+    sun: { dir: new Vector3(0.3, 0.5, 0.8), color: new Color('#fff4e2'), intensity: 3 },
+    moon: { dir: new Vector3(-0.3, 0.5, -0.8), intensity: 0 },
     events: [],
   };
 
@@ -167,7 +169,6 @@ async function boot() {
     engine, layout, textures, bus, state, input, quality,
     rng: new Rng(`root:${seed}`),
     colliders: [],
-    THREE,
   };
 
   // ------------------------------------------------------------- minimap io
@@ -291,7 +292,7 @@ async function boot() {
   console.log('[pelican] boot stages: ' + bootStages.map((s) => `${s.name}=${s.ms}ms`).join(' '));
 
   if (modules.controls?.spawn) modules.controls.spawn(state);
-  engine.camera.position.copy(state.player.position).add(new THREE.Vector3(0, 40, -60));
+  engine.camera.position.copy(state.player.position).add(new Vector3(0, 40, -60));
   bus.emit('quality:changed', { level: quality });
 
   // ------------------------------------------------------------- helpers

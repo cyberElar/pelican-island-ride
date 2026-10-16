@@ -53,10 +53,16 @@ for (const file of walk(path.join(root, 'src')).concat([path.join(root, 'index.h
   });
 }
 
-// index.html must not pull remote scripts or styles either.
+// index.html must not pull remote scripts or styles either. `rel="canonical"`
+// and link-preview `<meta>` tags are crawler metadata that is never fetched by
+// the page itself, so those lines are exempt.
 const html = readFileSync(path.join(root, 'index.html'), 'utf8');
-for (const m of html.matchAll(/(?:src|href)\s*=\s*["'](https?:[^"']+)["']/g)) {
-  problems.push(`index.html  remote reference: ${m[1]}`);
+for (const [i, line] of html.split(/\r?\n/).entries()) {
+  if (/rel\s*=\s*["']canonical["']/.test(line)) continue;
+  if (/<meta\s[^>]*(?:property|name)\s*=\s*["'](?:og|twitter):/.test(line)) continue;
+  for (const m of line.matchAll(/(?:src|href)\s*=\s*["'](https?:[^"']+)["']/g)) {
+    problems.push(`index.html:${i + 1}  remote reference: ${m[1]}`);
+  }
 }
 
 if (problems.length) {
