@@ -243,6 +243,14 @@ await page.evaluate(() => {
     for (let i = 0; i < n; i++) { try { cam.update(1 / 60, P.state); } catch { /* ignore */ } }
     return n;
   };
+  // The engine loop is stopped, so the rider does not follow a teleport on its
+  // own: without this the draw-call numbers of a view silently exclude the
+  // character whenever the previous camera position is out of frustum.
+  window.__syncRider = () => {
+    const rider = P.modules.rider;
+    if (rider && typeof rider.update === 'function') { try { rider.update(1 / 60, P.state); } catch { /* ignore */ } }
+    return true;
+  };
 });
 
 const stats = (arr) => {
@@ -500,6 +508,7 @@ for (const [name, fn] of views) {
     const P = window.__pelican;
     // eslint-disable-next-line no-new-func
     new Function('P', `(${src})(P);`)(P);
+    window.__syncRider();
     window.__settleCamera(240);
   }, fn.toString());
   await page.waitForTimeout(200);

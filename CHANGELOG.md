@@ -87,6 +87,16 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The rider's static meshes are merged per parent and material
+  (`src/character/merge-static.js`): 172 meshes become 87, which removes ~85
+  draw calls from the main pass *and* ~85 from the shadow pass (the village
+  camera drops from 561 to 476 calls, its shadow pass from 229 to 57) with
+  identical triangles and every animated joint untouched.
+- The perf probes re-parent the character onto the teleported position before
+  measuring. Earlier matrices silently dropped the rider's draw calls in views
+  whose previous camera position was out of frustum, which is why the low
+  tier's worst camera now reads 393 calls instead of the 306 the first revision
+  of `docs/research/perf-baseline.md` listed.
 - Repository layout, docs and tooling now live under this project folder.
 - Island build at the high preset dropped from ~30 s to ~4-5 s on an
   unthrottled desktop (up to ~13 s on a busy machine): the grass scatter uses

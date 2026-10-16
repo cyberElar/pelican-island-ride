@@ -65,6 +65,11 @@ await page.evaluate((name) => {
     windmill: () => { const w = P.layout.pois.windmill.position; P.setHour(13.2); P.teleport(w.x + 32, w.z + 28, -2.3); },
   }[name];
   view();
+  // the loop is stopped, so the rider has to be snapped onto the new position
+  // by hand - otherwise its draw calls are missing from the measurement
+  if (P.modules.rider && typeof P.modules.rider.update === 'function') {
+    try { P.modules.rider.update(1 / 60, P.state); } catch { /* ignore */ }
+  }
   const cam = P.modules.camera;
   for (let i = 0; i < 240; i++) cam.update(1 / 60, P.state);
   P.state.paused = true;

@@ -22,6 +22,7 @@ import * as THREE from 'three';
 import { clamp, clamp01, damp } from '../core/utils.js';
 import { createBicycle, BIKE_DIMS } from './bicycle.js';
 import { createPelican, PELICAN_MOUNT } from './pelican.js';
+import { mergeStaticChildren } from './merge-static.js';
 
 export function createRider(ctx) {
   const root = new THREE.Group();
@@ -54,6 +55,16 @@ export function createRider(ctx) {
     pelicanRoot: pelican.root,
     pelicanMount,
   };
+
+  // Collapse the static meshes. The rig is ~170 meshes and each one costs a
+  // draw call in the main pass *and* in the shadow pass; merging them per
+  // parent+material keeps every animated joint intact (the merged mesh rides
+  // along with its parent) and takes most of those calls away. Named parts
+  // stay addressable, so nothing that pokes at `parts.*` breaks.
+  parts.mergedStaticMeshes = mergeStaticChildren(root, [
+    parts,
+    parts.streamers,
+  ]);
 
   // -------------------------------------------------------------------------
   // Pedal targets + pelican animation payload (allocated once)
