@@ -5,7 +5,7 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project aims to follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] - 2026-10-17
 
 ### Added
 
@@ -132,7 +132,7 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 - 21 hand-built landmarks, including a rotating-beam lighthouse, a harbour with
   bobbing boats, a windmill, standing stones, a sea arch and an observatory.
 - 234 procedural creatures and six particle systems.
-- Arcade bicycle physics, 40 golden feathers, 28 discoverable landmarks, an
+- Arcade bicycle physics, 40 golden feathers, 25 discoverable landmarks, an
   8-checkpoint time trial with a stored best lap, photo mode, day/night cycle
   and dynamic weather.
 - Custom sky and ocean shaders, four-way blended terrain splatting, PMREM
@@ -141,5 +141,6 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 - GitHub Pages deployment, dual-language README, screenshot harness and eight
   headless module test suites.
 
-[Unreleased]: https://github.com/cyberElar/pelican-island-ride/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/cyberElar/pelican-island-ride/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/cyberElar/pelican-island-ride/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/cyberElar/pelican-island-ride/releases/tag/v1.0.0
