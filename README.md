@@ -103,7 +103,7 @@ the preset manually, `?debug=1` shows an fps / frame-time / draw-call overlay.
   collectibles, events, audio. Each one is a factory returning
   `{ group, update(dt, state), setQuality? }`.
 - 488 geometries, 195 procedural textures, ~75 shader programs; the composite
-  frame runs ≈280–475 draw calls and 2.1–4.4 M triangles at the *high* preset,
+  frame runs ≈300–455 draw calls and 2.2–4.4 M triangles at the *high* preset,
   depending on where you are (shadows and post-processing included). Ground
   cover is culled by distance (1.3 km at high), flowers are batched over 2 km
   blocks and the character's static meshes are merged per material, so neither

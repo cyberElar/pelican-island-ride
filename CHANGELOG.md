@@ -5,6 +5,19 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project aims to follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Landmarks merge across pieces: everything static in world space collapses
+  into one mesh per material (`src/core/merge-static.js`, moved there from
+  `src/character/` so both content modules can share it). The village camera
+  drops from 81 to 63 landmark draw calls and the bridge camera from 115 to 96;
+  the honest cost is 0.03 M never-culled triangles plus 8 shadow-pass calls,
+  because a merged mesh spans the island. Net ~18 main-pass calls fewer per
+  frame. All four camera matrices are re-recorded; the low tier's worst camera
+  is 364 calls and 1.48 M triangles.
+
 ## [1.1.0] - 2026-10-17
 
 ### Added

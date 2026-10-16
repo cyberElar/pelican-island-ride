@@ -22,6 +22,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   Rng, SimplexNoise2D, clamp, clamp01, lerp, smoothstep, TAU, HALF_PI, createSlicer,
 } from '../core/utils.js';
+import { mergeStaticChildren, mergeStaticAcross } from '../core/merge-static.js';
 
 // ---------------------------------------------------------------------------
 // Scratch objects - update() must never allocate
@@ -1912,6 +1913,16 @@ export async function createLandmarks(ctx) {
       parts.rowboat.rotation.x = Math.cos(simTime * 0.61) * 0.018;
     }
   }
+
+  // Collapse the static meshes of every set piece. Each piece is already
+  // batched per material, so the win is across pieces: everything that is
+  // static in world space merges into one mesh per material (~115 draw calls
+  // become a dozen, in the main pass and again in the shadow pass), while the
+  // animated parts - the beam, the balloons, the flags, the telescope, the
+  // watermill wheel - keep their own meshes. The module's triangles are tiny
+  // (27 k), so losing per-piece culling costs nothing.
+  parts.mergedStatic = mergeStaticAcross(group, [parts, animated]);
+  parts.mergedStaticMeshes = mergeStaticChildren(group, [parts, animated]);
 
   // =========================================================================
   // Stats + contract

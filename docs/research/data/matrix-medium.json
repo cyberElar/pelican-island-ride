@@ -6,7 +6,7 @@
     1280,
     720
   ],
-  "bootMs": 3311,
+  "bootMs": 3181,
   "frames": 60,
   "glInfo": {
     "unmaskedRenderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
@@ -54,32 +54,32 @@
       "gpu": {
         "frame-main": {
           "n": 40,
-          "mean": 2.07,
-          "median": 2.02,
-          "p95": 2.82,
-          "min": 1.01,
-          "max": 3.07
+          "mean": 2.24,
+          "median": 2.2,
+          "p95": 3.07,
+          "min": 0.83,
+          "max": 3.99
         }
       },
       "gpuKey": "frame-main",
-      "gpuMs": 2.02,
+      "gpuMs": 2.2,
       "submit": {
         "n": 40,
-        "mean": 1.8,
-        "median": 1.8,
-        "p95": 2.2,
-        "min": 1.4,
-        "max": 2.2
+        "mean": 1.7,
+        "median": 1.7,
+        "p95": 2.4,
+        "min": 1.1,
+        "max": 2.5
       },
       "finishWall": null,
       "sampleCount": 40,
       "info": {
-        "calls": 356,
-        "triangles": 1925890,
+        "calls": 372,
+        "triangles": 1952538,
         "points": 1256,
         "lines": 0,
         "programs": 66,
-        "geometries": 303,
+        "geometries": 258,
         "textures": 155
       }
     },
@@ -89,32 +89,32 @@
       "gpu": {
         "frame-main": {
           "n": 40,
-          "mean": 2.71,
-          "median": 2.25,
-          "p95": 6.95,
-          "min": 1.32,
-          "max": 7.23
+          "mean": 2.81,
+          "median": 2.59,
+          "p95": 6.19,
+          "min": 1.36,
+          "max": 6.68
         }
       },
       "gpuKey": "frame-main",
-      "gpuMs": 2.25,
+      "gpuMs": 2.59,
       "submit": {
         "n": 40,
-        "mean": 1.92,
-        "median": 1.9,
-        "p95": 2.5,
-        "min": 1.2,
-        "max": 2.5
+        "mean": 1.94,
+        "median": 2,
+        "p95": 2.6,
+        "min": 1,
+        "max": 2.6
       },
       "finishWall": null,
       "sampleCount": 40,
       "info": {
-        "calls": 450,
-        "triangles": 2811815,
+        "calls": 433,
+        "triangles": 2837531,
         "points": 1256,
         "lines": 19,
         "programs": 68,
-        "geometries": 321,
+        "geometries": 274,
         "textures": 174
       }
     },
@@ -124,32 +124,32 @@
       "gpu": {
         "frame-main": {
           "n": 40,
-          "mean": 1.64,
-          "median": 1.67,
-          "p95": 2.25,
-          "min": 0.69,
-          "max": 2.41
+          "mean": 1.79,
+          "median": 1.54,
+          "p95": 4.57,
+          "min": 0.92,
+          "max": 4.98
         }
       },
       "gpuKey": "frame-main",
-      "gpuMs": 1.67,
+      "gpuMs": 1.54,
       "submit": {
         "n": 40,
-        "mean": 1.58,
-        "median": 1.6,
-        "p95": 1.9,
-        "min": 0.9,
+        "mean": 1.42,
+        "median": 1.4,
+        "p95": 2,
+        "min": 0.7,
         "max": 2
       },
       "finishWall": null,
       "sampleCount": 40,
       "info": {
-        "calls": 275,
-        "triangles": 1570456,
+        "calls": 296,
+        "triangles": 1599276,
         "points": 1256,
         "lines": 0,
         "programs": 68,
-        "geometries": 356,
+        "geometries": 309,
         "textures": 177
       }
     },
@@ -159,32 +159,32 @@
       "gpu": {
         "frame-main": {
           "n": 40,
-          "mean": 2.33,
-          "median": 2.12,
-          "p95": 5.51,
-          "min": 1.15,
-          "max": 6.06
+          "mean": 2.42,
+          "median": 2.13,
+          "p95": 5.87,
+          "min": 1.14,
+          "max": 8.06
         }
       },
       "gpuKey": "frame-main",
-      "gpuMs": 2.12,
+      "gpuMs": 2.13,
       "submit": {
         "n": 40,
-        "mean": 1.79,
-        "median": 1.8,
-        "p95": 2.1,
-        "min": 1.2,
-        "max": 2.3
+        "mean": 1.66,
+        "median": 1.5,
+        "p95": 2.7,
+        "min": 0.7,
+        "max": 3.7
       },
       "finishWall": null,
       "sampleCount": 40,
       "info": {
-        "calls": 370,
-        "triangles": 2592873,
+        "calls": 369,
+        "triangles": 2621405,
         "points": 1256,
         "lines": 19,
         "programs": 68,
-        "geometries": 356,
+        "geometries": 309,
         "textures": 177
       }
     },
@@ -194,32 +194,32 @@
       "gpu": {
         "frame-main": {
           "n": 40,
-          "mean": 2.54,
-          "median": 2.44,
-          "p95": 3.6,
-          "min": 1.54,
-          "max": 3.8
+          "mean": 2.58,
+          "median": 2.29,
+          "p95": 6.86,
+          "min": 1.36,
+          "max": 7.07
         }
       },
       "gpuKey": "frame-main",
-      "gpuMs": 2.44,
+      "gpuMs": 2.29,
       "submit": {
         "n": 40,
-        "mean": 2.14,
-        "median": 2.1,
-        "p95": 2.7,
-        "min": 1.4,
-        "max": 2.7
+        "mean": 1.97,
+        "median": 1.9,
+        "p95": 2.8,
+        "min": 1.1,
+        "max": 4.1
       },
       "finishWall": null,
       "sampleCount": 40,
       "info": {
-        "calls": 419,
-        "triangles": 2702821,
+        "calls": 403,
+        "triangles": 2728669,
         "points": 1256,
         "lines": 19,
         "programs": 68,
-        "geometries": 356,
+        "geometries": 309,
         "textures": 177
       }
     },
@@ -229,32 +229,32 @@
       "gpu": {
         "frame-main": {
           "n": 40,
-          "mean": 2.26,
-          "median": 2.26,
-          "p95": 3.57,
-          "min": 1.47,
-          "max": 3.61
+          "mean": 2.63,
+          "median": 2.48,
+          "p95": 4.03,
+          "min": 1.48,
+          "max": 4.68
         }
       },
       "gpuKey": "frame-main",
-      "gpuMs": 2.26,
+      "gpuMs": 2.48,
       "submit": {
         "n": 40,
-        "mean": 1.9,
-        "median": 1.9,
-        "p95": 2.4,
-        "min": 1.2,
-        "max": 2.5
+        "mean": 1.81,
+        "median": 1.6,
+        "p95": 2.8,
+        "min": 1,
+        "max": 3.7
       },
       "finishWall": null,
       "sampleCount": 40,
       "info": {
-        "calls": 465,
-        "triangles": 2986089,
+        "calls": 445,
+        "triangles": 3009589,
         "points": 1256,
         "lines": 19,
         "programs": 68,
-        "geometries": 390,
+        "geometries": 343,
         "textures": 189
       }
     },
@@ -264,32 +264,32 @@
       "gpu": {
         "frame-main": {
           "n": 40,
-          "mean": 2.46,
-          "median": 2.36,
-          "p95": 3.55,
-          "min": 1.25,
-          "max": 6.54
+          "mean": 2.58,
+          "median": 2.16,
+          "p95": 6.06,
+          "min": 1.28,
+          "max": 6.27
         }
       },
       "gpuKey": "frame-main",
-      "gpuMs": 2.36,
+      "gpuMs": 2.16,
       "submit": {
         "n": 40,
-        "mean": 1.91,
-        "median": 1.9,
-        "p95": 2.4,
-        "min": 1.1,
-        "max": 2.5
+        "mean": 1.75,
+        "median": 1.6,
+        "p95": 3.3,
+        "min": 0.8,
+        "max": 3.3
       },
       "finishWall": null,
       "sampleCount": 40,
       "info": {
-        "calls": 378,
-        "triangles": 2566603,
+        "calls": 363,
+        "triangles": 2592583,
         "points": 1256,
         "lines": 19,
         "programs": 68,
-        "geometries": 390,
+        "geometries": 343,
         "textures": 189
       }
     },
@@ -299,32 +299,32 @@
       "gpu": {
         "frame-main": {
           "n": 40,
-          "mean": 1.9,
-          "median": 1.84,
-          "p95": 2.91,
-          "min": 0.99,
-          "max": 5.44
+          "mean": 1.67,
+          "median": 1.58,
+          "p95": 2.27,
+          "min": 1.03,
+          "max": 2.3
         }
       },
       "gpuKey": "frame-main",
-      "gpuMs": 1.84,
+      "gpuMs": 1.58,
       "submit": {
         "n": 40,
-        "mean": 1.38,
-        "median": 1.4,
-        "p95": 1.7,
-        "min": 0.7,
-        "max": 2.1
+        "mean": 1.19,
+        "median": 1.2,
+        "p95": 1.5,
+        "min": 0.9,
+        "max": 1.5
       },
       "finishWall": null,
       "sampleCount": 40,
       "info": {
-        "calls": 281,
-        "triangles": 2183444,
+        "calls": 297,
+        "triangles": 2211888,
         "points": 1256,
         "lines": 0,
         "programs": 68,
-        "geometries": 390,
+        "geometries": 343,
         "textures": 189
       }
     },
@@ -334,32 +334,32 @@
       "gpu": {
         "frame-main": {
           "n": 40,
-          "mean": 2.06,
-          "median": 1.98,
-          "p95": 2.94,
-          "min": 1.5,
-          "max": 3.36
+          "mean": 1.91,
+          "median": 1.83,
+          "p95": 3.02,
+          "min": 0.95,
+          "max": 4.3
         }
       },
       "gpuKey": "frame-main",
-      "gpuMs": 1.98,
+      "gpuMs": 1.83,
       "submit": {
         "n": 40,
-        "mean": 1.5,
+        "mean": 1.51,
         "median": 1.5,
-        "p95": 1.8,
+        "p95": 2.1,
         "min": 0.7,
-        "max": 1.8
+        "max": 2.3
       },
       "finishWall": null,
       "sampleCount": 40,
       "info": {
-        "calls": 288,
-        "triangles": 2194869,
+        "calls": 303,
+        "triangles": 2225093,
         "points": 1256,
         "lines": 0,
         "programs": 68,
-        "geometries": 390,
+        "geometries": 343,
         "textures": 189
       }
     },
@@ -369,32 +369,32 @@
       "gpu": {
         "frame-main": {
           "n": 40,
-          "mean": 1.7,
-          "median": 1.77,
-          "p95": 2.16,
+          "mean": 1.71,
+          "median": 1.65,
+          "p95": 2.5,
           "min": 0.76,
-          "max": 2.68
+          "max": 3.94
         }
       },
       "gpuKey": "frame-main",
-      "gpuMs": 1.77,
+      "gpuMs": 1.65,
       "submit": {
         "n": 40,
-        "mean": 1.68,
-        "median": 1.7,
+        "mean": 1.51,
+        "median": 1.4,
         "p95": 2.2,
-        "min": 0.9,
-        "max": 2.4
+        "min": 1.1,
+        "max": 3.8
       },
       "finishWall": null,
       "sampleCount": 40,
       "info": {
-        "calls": 341,
-        "triangles": 1850999,
+        "calls": 350,
+        "triangles": 1879339,
         "points": 1256,
         "lines": 0,
         "programs": 68,
-        "geometries": 407,
+        "geometries": 347,
         "textures": 189
       }
     }
@@ -402,20 +402,20 @@
   "moduleCpu": {
     "sky": 0.0005,
     "terrain": 0,
-    "environment": 0,
-    "ocean": 0.003,
+    "environment": 0.0005,
+    "ocean": 0.004,
     "vegetation": 0,
-    "props": 0.0035,
-    "landmarks": 0.001,
-    "animals": 0.0155,
-    "particles": 0.0055,
+    "props": 0.004,
+    "landmarks": 0.002,
+    "animals": 0.0195,
+    "particles": 0.0045,
     "weather": 0.001,
     "camera": 0.001,
-    "controls": 0.0225,
-    "rider": 0.007,
-    "collectibles": 0.0055,
-    "events": 0.004,
-    "audio": 0.016
+    "controls": 0.0245,
+    "rider": 0.0065,
+    "collectibles": 0.0045,
+    "events": 0.0045,
+    "audio": 0.017
   },
   "matrixWorld": {},
   "notes": [
@@ -423,12 +423,12 @@
     "each measured frame waits for the previous GPU query, so the GPU queue stays one frame deep"
   ],
   "rendererInfo": {
-    "calls": 417,
-    "triangles": 1786473,
+    "calls": 419,
+    "triangles": 1809921,
     "points": 1340,
     "lines": 0,
-    "programs": 71,
-    "geometries": 411,
+    "programs": 72,
+    "geometries": 351,
     "textures": 189
   },
   "pageErrors": []

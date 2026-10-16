@@ -22,7 +22,7 @@ import * as THREE from 'three';
 import { clamp, clamp01, damp } from '../core/utils.js';
 import { createBicycle, BIKE_DIMS } from './bicycle.js';
 import { createPelican, PELICAN_MOUNT } from './pelican.js';
-import { mergeStaticChildren } from './merge-static.js';
+import { mergeStaticChildren } from '../core/merge-static.js';
 
 export function createRider(ctx) {
   const root = new THREE.Group();
