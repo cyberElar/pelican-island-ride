@@ -31,10 +31,15 @@ export function createControls(ctx) {
   const _fwd = new THREE.Vector3();
   const _pos = new THREE.Vector3();
   let groundY = 0;
+  const spurIds = Object.keys(layout.spurs);
+  const crashEvent = { speed: 0 };
+  const resetEvent = { position: _pos };
+  const splashEvent = { name: "splash", volume: 0.8 };
+  const rescueToast = { title: "落水了，已返回最近路面", sub: "Back on the road" };
 
   function surfaceAt(x, z) {
     if (layout.onRoad(x, z, 1.0)) return 'asphalt';
-    for (const id of Object.keys(layout.spurs)) {
+    for (const id of spurIds) {
       if (layout.spurs[id].distance(x, z) < layout.spurs[id].width + 1.0) return 'gravel';
     }
     const biome = layout.biomeAt(x, z);
@@ -75,12 +80,31 @@ export function createControls(ctx) {
     p.speed = 0;
     p.velocity.set(0, 0, 0);
     p.crash = 0;
-    bus.emit('player:reset', { position: p.position });
+    p.airTime = 0;
+    p.inWater = false;
+    p.grounded = true;
+    groundY = p.position.y;
+    resetEvent.position = p.position;
+    bus.emit('player:reset', resetEvent);
   }
 
   function update(dt, state) {
     const p = state.player;
     const ax = input.axes;
+    if (state.race?.active && state.race.countdown > 0) {
+      p.speed = 0;
+      p.velocity.set(0, 0, 0);
+      p.boost = false;
+      return;
+    }
+    if (layout.waterDepth(p.position.x, p.position.z) > 0.45 && !layout.onRoad(p.position.x, p.position.z, 1)) {
+      bus.emit('sfx', splashEvent);
+      ctx.ocean?.splash?.(p.position.x, p.position.z, 1);
+      reset(state);
+      bus.emit('ui:toast', rescueToast);
+
+      return;
+    }
 
     p.crash = Math.max(0, p.crash - dt);
     const crashed = p.crash > 0;
@@ -88,7 +112,9 @@ export function createControls(ctx) {
     const throttle = crashed ? 0 : ax.throttle;
     const brake = ax.brake;
     const steerInput = clamp(ax.steer, -1, 1);
-    const wantBoost = !crashed && input.held('boost') && p.boostStamina > 0.02 && throttle > 0.05;
+    // `touchHeld` carries gamepad and on-screen buttons, `held` the keyboard.
+    const wantBoost = !crashed && (input.held('boost') || input.touchHeld?.('boost'))
+      && p.boostStamina > 0.02 && throttle > 0.05;
     p.boost = wantBoost;
     p.boostStamina = wantBoost
       ? clamp01(p.boostStamina - dt * 0.15)
@@ -103,10 +129,11 @@ export function createControls(ctx) {
 
     const depth = layout.waterDepth(x0, z0);
     p.inWater = depth > 0.45;
-    p.splashCooldown -= dt;
+    p.splashCooldown = Math.max(0, (p.splashCooldown || 0) - dt);
     if (p.inWater && p.splashCooldown <= 0 && Math.abs(p.speed) > 2) {
       p.splashCooldown = 0.55;
-      bus.emit('sfx', { name: 'splash', volume: clamp01(depth * 0.35) });
+      splashEvent.volume = clamp01(depth * 0.35);
+      bus.emit('sfx', splashEvent);
       if (ctx.ocean?.splash) ctx.ocean.splash(x0, z0, clamp01(depth * 0.3) + 0.4);
     }
 
@@ -122,7 +149,7 @@ export function createControls(ctx) {
     const sgn = Math.sign(p.speed);
     a -= sgn * (surf.roll * 0.16 + 0.0068 * p.speed * p.speed);
     if (p.inWater) a -= sgn * 7.0 * clamp01(depth);
-    if (input.held('brakeHard')) a -= sgn * 9.0;
+    if (input.held('brakeHard') || input.touchHeld?.('brakeHard')) a -= sgn * 9.0;
 
     _fwd.set(Math.sin(p.heading), 0, Math.cos(p.heading));
     const hAhead = layout.heightAt(x0 + _fwd.x * 2.2, z0 + _fwd.z * 2.2);
@@ -152,16 +179,22 @@ export function createControls(ctx) {
       const dx = _pos.x - c.x, dz = _pos.z - c.z;
       const rr = (c.r || 1) + 0.44;
       const d2 = dx * dx + dz * dz;
-      if (d2 < rr * rr) {
-        const d = Math.max(0.001, Math.sqrt(d2));
-        const nx = dx / d, nz = dz / d;
+      const moveX = _pos.x - x0, moveZ = _pos.z - z0;
+      const move2 = moveX * moveX + moveZ * moveZ;
+      const along = move2 > 0 ? clamp(((c.x - x0) * moveX + (c.z - z0) * moveZ) / move2, 0, 1) : 0;
+      const nearX = x0 + moveX * along - c.x, nearZ = z0 + moveZ * along - c.z;
+      if (d2 < rr * rr || nearX * nearX + nearZ * nearZ < rr * rr) {
+        if (d2 >= rr * rr) { _pos.x = x0; _pos.z = z0; }
+        const hitX = _pos.x - c.x, hitZ = _pos.z - c.z;
+        const d = Math.max(0.001, Math.hypot(hitX, hitZ));
+        const nx = hitX / d, nz = hitZ / d;
         _pos.x = c.x + nx * rr;
         _pos.z = c.z + nz * rr;
         const impact = Math.abs(p.speed);
         if (impact > 4.2) {
+          crashEvent.speed = p.speed;
+          if (p.crash <= 0) bus.emit('rider:crash', crashEvent);
           p.crash = 0.85;
-          bus.emit('sfx', { name: 'crash', volume: clamp01(impact / 12) });
-          bus.emit('rider:crash', { speed: p.speed });
         }
         p.speed *= 0.32;
       }
@@ -182,6 +215,12 @@ export function createControls(ctx) {
       p.position.y += p.velocity.y * dt;
       if (p.position.y <= groundY) {
         p.position.y = groundY;
+        if (p.velocity.y < -9 && p.crash <= 0) {
+          crashEvent.speed = Math.abs(p.velocity.y);
+          bus.emit('rider:crash', crashEvent);
+          p.crash = 0.85;
+          p.speed *= 0.32;
+        }
         p.velocity.y = 0;
         p.airTime = 0;
       }

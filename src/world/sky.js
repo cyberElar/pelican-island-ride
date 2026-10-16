@@ -52,6 +52,7 @@ function rampSample(hour) {
 
 export function createSky(ctx) {
   const { textures: TEX } = ctx;
+  const preset = ctx.engine?.preset || {};
   const group = new THREE.Group();
   group.name = 'sky';
   const R = 6400;
@@ -66,6 +67,7 @@ export function createSky(ctx) {
     uGround: { value: new THREE.Color('#33404f') },
     uNight: { value: 0 },
     uCloudiness: { value: 0.35 },
+    uCloudLayers: { value: Math.max(1, Math.min(3, preset.cloudLayers || 2)) },
     uTime: { value: 0 },
     uSunElev: { value: 0.5 },
     uStarField: { value: 1 },
@@ -84,7 +86,7 @@ export function createSky(ctx) {
   const fragmentShader = /* glsl */`
     precision highp float;
     uniform vec3 uSunDir, uMoonDir, uZenith, uHorizon, uSunColor, uSundown, uGround;
-    uniform float uNight, uCloudiness, uTime, uSunElev, uStarField, uMoonPhase;
+    uniform float uNight, uCloudiness, uCloudLayers, uTime, uSunElev, uStarField, uMoonPhase;
     varying vec3 vDir;
 
     float hash13(vec3 p3) {
@@ -126,8 +128,8 @@ export function createSky(ctx) {
       float sunAz = pow(max(dot(normalize(vec3(dir.x, 0.0, dir.z)), normalize(vec3(uSunDir.x, 0.0, uSunDir.z))), 0.0), 3.0);
       col = mix(col, uSundown, horiz * sunAz * 0.75 * (1.0 - uNight));
       // disc + halo
-      float disc = smoothstep(0.99966, 0.99985, sd);
-      float glow = pow(sd, 480.0) * 1.4 + pow(sd, 26.0) * 0.22 + pow(sd, 6.0) * 0.022;
+      float disc = smoothstep(0.99992, 0.99997, sd);
+      float glow = pow(sd, 900.0) * 2.2 + pow(sd, 26.0) * 0.22 + pow(sd, 6.0) * 0.022;
       col += uSunColor * (disc * 12.0 + glow) * clamp(uSunElev * 3.0 + 0.15, 0.0, 1.6);
       // atmospheric extinction near the horizon
       col *= mix(vec3(1.0), vec3(1.06, 0.92, 0.78), clamp(1.0 - abs(hgt) * 3.0, 0.0, 1.0));
@@ -164,30 +166,46 @@ export function createSky(ctx) {
         col += vec3(0.74, 0.80, 0.98) * (star * 2.4 + mw * 0.09) * uStarField * clamp(hgt + 0.06, 0.0, 1.0);
       }
 
-      // --- clouds (2 layers, raymarched on a plane) ---
+      // --- clouds (up to 3 layers, raymarched on a plane) ---
       if (uCloudiness > 0.01 && hgt > 0.008) {
         vec2 drift = vec2(uTime * 0.0026, uTime * 0.0013);
-        for (int layer = 0; layer < 2; layer++) {
-          float h = mix(900.0, 2100.0, float(layer));
+        for (int layer = 0; layer < 3; layer++) {
+          float lf = float(layer);
+          if (lf >= uCloudLayers) break;
+          float h = mix(900.0, mix(2100.0, 4300.0, step(1.5, lf)), step(0.5, lf));
           vec2 p = dir.xz / max(hgt, 0.02) * h;
-          float scale = mix(0.00042, 0.00022, float(layer));
-          float cov = uCloudiness * mix(0.72, 1.0, float(layer));
-          float n = fbm3(vec3(p * scale + drift * float(layer + 1), float(layer) * 7.0));
-          float cloud = smoothstep(1.0 - cov * 0.85, 1.0 - cov * 0.25, n);
+          // The top layer is stretched sideways so it reads as cirrus bands
+          // rather than another puffy layer stacked on top.
+          vec2 stretch = mix(vec2(1.0), vec2(0.46, 1.55), step(1.5, lf));
+          float scale = mix(0.00042, mix(0.00022, 0.00011, step(1.5, lf)), step(0.5, lf));
+          float cov = clamp(uCloudiness * mix(0.86, mix(1.0, 0.72, step(1.5, lf)), step(0.5, lf)), 0.0, 1.0);
+          float n = fbm3(vec3(p * scale * stretch + drift * (lf + 1.0), lf * 7.0));
+          // The old thresholds only started producing cloud at uCloudiness
+          // ~0.5, so the default 0.35 sky was empty no matter what.
+          float shaped = n * 1.18 - 0.06;
+          float thresh = 1.0 - cov * 1.30;
+          float cloud = smoothstep(thresh, thresh + 0.26 + cov * 0.20, shaped);
           // light the cloud: bright toward the sun side, dark bottoms
           float sunSide = clamp(dot(normalize(vec3(dir.x, 0.28, dir.z)), normalize(vec3(uSunDir.x, 0.32, uSunDir.z))) * 0.5 + 0.5, 0.0, 1.0);
-          float density = smoothstep(0.0, 0.6, n - (1.0 - cov * 0.8));
+          float density = smoothstep(0.0, 0.6, shaped - thresh);
           vec3 cloudShadow = mix(vec3(0.34, 0.36, 0.42), uZenith * 0.55, 0.4);
           vec3 cloudLit = mix(vec3(1.0, 0.99, 0.97), uSunColor * 1.1, 0.55);
           vec3 cloudCol = mix(cloudShadow, cloudLit, sunSide * (1.0 - density * 0.35));
+          // rim light along the edges facing the sun
+          cloudCol += uSunColor * pow(sunSide, 3.0) * smoothstep(0.25, 0.85, cloud) * (1.0 - density) * 0.35;
           // sunset warmth
           cloudCol = mix(cloudCol, uSundown * 1.05, horiz * 0.55 * (1.0 - uNight) * sunSide);
           // moonlight: clouds must go dim at night instead of glowing white
           cloudCol *= mix(1.0, 0.085, uNight);
           cloudCol += vec3(0.30, 0.36, 0.52) * uNight * 0.22 * sunSide;
           // fade near the horizon and the zenith
-          float fadeH = smoothstep(0.012, 0.10, hgt) * (1.0 - smoothstep(0.72, 0.98, hgt) * 0.55);
-          float a = cloud * fadeH * (layer == 0 ? 0.86 : 0.5);
+          // The high cirrus layer is magnified by dir.xz/hgt, so near the
+          // horizon its noise frequency explodes and reads as ribbed stripes:
+          // it has to fade out well before the clouds below it do.
+          float fadeH = smoothstep(mix(0.012, 0.050, step(1.5, lf)), mix(0.10, 0.22, step(1.5, lf)), hgt)
+                      * (1.0 - smoothstep(0.72, 0.98, hgt) * 0.55);
+          float alphaLayer = lf < 0.5 ? 0.86 : (lf < 1.5 ? 0.52 : 0.30);
+          float a = cloud * fadeH * alphaLayer;
           col = mix(col, cloudCol, clamp(a, 0.0, 1.0));
         }
       }
@@ -285,6 +303,12 @@ export function createSky(ctx) {
     setHour,
     update(dt, gameState) {
       uniforms.uTime.value += dt;
+      // The dome draws with depthTest:false, so it can simply ride along with
+      // the camera. Without this the horizon tilts as the player rides away
+      // from the origin (the dome is 6.4 km across and the ring road is 1.8 km
+      // off centre at its furthest point).
+      const cam = ctx.engine?.camera;
+      if (cam) dome.position.copy(cam.position);
       if (gameState && typeof gameState.hour === 'number') {
         const h = gameState.hour;
         if (Math.abs(h - hour) > 0.0005) setHour(h);

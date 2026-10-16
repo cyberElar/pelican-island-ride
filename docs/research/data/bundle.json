@@ -1,0 +1,719 @@
+{
+  "files": {
+    "game.js": {
+      "bytes": 1240607,
+      "KiB": 1211.5,
+      "gzipBytes": 380857,
+      "gzipKiB": 371.9,
+      "brotliBytes": 317237,
+      "brotliKiB": 309.8,
+      "sha256": "af6aa04965098d70"
+    },
+    "dist\\game.js": {
+      "bytes": 1240607,
+      "KiB": 1211.5,
+      "gzipBytes": 380857,
+      "gzipKiB": 371.9,
+      "brotliBytes": 317237,
+      "brotliKiB": 309.8,
+      "sha256": "af6aa04965098d70"
+    },
+    "dist\\styles.css": {
+      "bytes": 43058,
+      "KiB": 42,
+      "gzipBytes": 8281,
+      "gzipKiB": 8.1,
+      "brotliBytes": 7106,
+      "brotliKiB": 6.9,
+      "sha256": "cc0913c2809b0547"
+    },
+    "styles.css": {
+      "bytes": 43058,
+      "KiB": 42,
+      "gzipBytes": 8281,
+      "gzipKiB": 8.1,
+      "brotliBytes": 7106,
+      "brotliKiB": 6.9,
+      "sha256": "cc0913c2809b0547"
+    },
+    "index.html": {
+      "bytes": 2407,
+      "KiB": 2.4,
+      "gzipBytes": 1306,
+      "gzipKiB": 1.3,
+      "brotliBytes": 944,
+      "brotliKiB": 0.9,
+      "sha256": "12d31bc15b4dbc9a"
+    }
+  },
+  "bundle": {
+    "outfile": "C:\\Users\\09021\\AppData\\Local\\Packages\\sandbox.{1272f025-37de-4260-8f07-acb8a76bf87e}\\AC\\Temp\\pelican-audit-60704\\game.js",
+    "bytes": 1240607,
+    "KiB": 1211.5,
+    "gzipKiB": 371.9,
+    "brotliKiB": 309.8,
+    "buildMs": 142,
+    "inputCount": 44
+  },
+  "sourceAttribution": [
+    {
+      "name": "node_modules/three/build/three.core.js",
+      "bytesInOutput": 377312
+    },
+    {
+      "name": "node_modules/three/build/three.module.js",
+      "bytesInOutput": 366285
+    },
+    {
+      "name": "src/world/props.js",
+      "bytesInOutput": 64465
+    },
+    {
+      "name": "node_modules/three/examples/jsm/postprocessing/SMAAPass.js",
+      "bytesInOutput": 47215
+    },
+    {
+      "name": "src/world/landmarks.js",
+      "bytesInOutput": 46460
+    },
+    {
+      "name": "src/world/animals.js",
+      "bytesInOutput": 33587
+    },
+    {
+      "name": "src/core/textures.js",
+      "bytesInOutput": 30639
+    },
+    {
+      "name": "src/ui/hud.js",
+      "bytesInOutput": 29636
+    },
+    {
+      "name": "src/world/vegetation.js",
+      "bytesInOutput": 29314
+    },
+    {
+      "name": "src/core/audio.js",
+      "bytesInOutput": 22964
+    },
+    {
+      "name": "src/ui/menus.js",
+      "bytesInOutput": 19322
+    },
+    {
+      "name": "src/character/bicycle.js",
+      "bytesInOutput": 15373
+    },
+    {
+      "name": "src/world/layout.js",
+      "bytesInOutput": 14776
+    },
+    {
+      "name": "node_modules/three/examples/jsm/shaders/SMAAShader.js",
+      "bytesInOutput": 13993
+    },
+    {
+      "name": "src/world/particles.js",
+      "bytesInOutput": 13767
+    },
+    {
+      "name": "src/character/pelican.js",
+      "bytesInOutput": 12741
+    },
+    {
+      "name": "src/main.js",
+      "bytesInOutput": 10148
+    },
+    {
+      "name": "src/world/ocean.js",
+      "bytesInOutput": 9483
+    },
+    {
+      "name": "src/world/sky.js",
+      "bytesInOutput": 9045
+    },
+    {
+      "name": "src/world/terrain.js",
+      "bytesInOutput": 8526
+    },
+    {
+      "name": "node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js",
+      "bytesInOutput": 8485
+    },
+    {
+      "name": "src/fx/post.js",
+      "bytesInOutput": 7080
+    },
+    {
+      "name": "src/gameplay/events.js",
+      "bytesInOutput": 5523
+    },
+    {
+      "name": "src/gameplay/camera.js",
+      "bytesInOutput": 5143
+    },
+    {
+      "name": "src/core/utils.js",
+      "bytesInOutput": 5119
+    }
+  ],
+  "shaderChunks": [
+    {
+      "marker": "skinning_pars_vertex",
+      "meaning": "SkinnedMesh skinning",
+      "present": true,
+      "context": "rtex> #include <displacementmap_pars_vertex> #include <morphtarget_pars_vertex> #include <skinning_pars_vertex> #include <logdepthbuf_pars_vertex> #include <clipping_planes_pars_ve"
+    },
+    {
+      "marker": "morphinstance_vertex",
+      "meaning": "morph targets",
+      "present": true,
+      "context": " #include <uv_vertex> #include <batching_vertex> #include <skinbase_vertex> #include <morphinstance_vertex> #ifdef USE_DISPLACEMENTMAP #include <beginnormal_vertex> #inclu"
+    },
+    {
+      "marker": "morphcolor_vertex",
+      "meaning": "morph target colors",
+      "present": true,
+      "context": "#include <uv_vertex> #include <color_vertex> #include <morphinstance_vertex> #include <morphcolor_vertex> #include <begin_vertex> #include <morphtarget_vertex> #include <proj"
+    },
+    {
+      "marker": "batching_pars_vertex",
+      "meaning": "BatchedMesh",
+      "present": true,
+      "context": "<tonemapping_fragment> #include <colorspace_fragment> }`,y_=`#include <common> #include <batching_pars_vertex> #include <uv_pars_vertex> #include <displacementmap_pars_vertex> #in"
+    },
+    {
+      "marker": "iridescence_pars_fragment",
+      "meaning": "MeshPhysicalMaterial.iridescence",
+      "present": true,
+      "context": "fragment> #include <normalmap_pars_fragment> #include <clearcoat_pars_fragment> #include <iridescence_pars_fragment> #include <roughnessmap_pars_fragment> #include <metalnessmap_pa"
+    },
+    {
+      "marker": "clearcoat_pars_fragment",
+      "meaning": "MeshPhysicalMaterial.clearcoat",
+      "present": true,
+      "context": "s_fragment> #include <bumpmap_pars_fragment> #include <normalmap_pars_fragment> #include <clearcoat_pars_fragment> #include <iridescence_pars_fragment> #include <roughnessmap_pars_"
+    },
+    {
+      "marker": "sheen_pars_fragment",
+      "meaning": "MeshPhysicalMaterial.sheen",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "anisotropy_pars_fragment",
+      "meaning": "MeshPhysicalMaterial.anisotropy",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "transmission_pars_fragment",
+      "meaning": "MeshPhysicalMaterial.transmission",
+      "present": true,
+      "context": "begin> #include <normal_pars_fragment> #include <lights_physical_pars_fragment> #include <transmission_pars_fragment> #include <shadowmap_pars_fragment> #include <bumpmap_pars_frag"
+    },
+    {
+      "marker": "dispersion_pars_fragment",
+      "meaning": "MeshPhysicalMaterial.dispersion",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "volume_pars_fragment",
+      "meaning": "NodeMaterial volume",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "alphahash_fragment",
+      "meaning": "alphaHash",
+      "present": true,
+      "context": "de <map_fragment> #include <alphamap_fragment> #include <alphatest_fragment> #include <alphahash_fragment> #include <logdepthbuf_fragment> #ifdef USE_REVERSED_DEPTH_BUFFER f"
+    },
+    {
+      "marker": "lightmap_pars_fragment",
+      "meaning": "lightMap support",
+      "present": true,
+      "context": "ars_fragment> #include <alphahash_pars_fragment> #include <aomap_pars_fragment> #include <lightmap_pars_fragment> #include <envmap_common_pars_fragment> #include <envmap_pars_fragm"
+    },
+    {
+      "marker": "envmap_physical_pars_fragment",
+      "meaning": "IBL envmap (PMREM)",
+      "present": true,
+      "context": "ragment> #include <envmap_common_pars_fragment> #include <envmap_pars_fragment> #include <envmap_physical_pars_fragment> #include <fog_pars_fragment> #include <bsdfs> #include <lig"
+    },
+    {
+      "marker": "shadowmap_pars_fragment",
+      "meaning": "shadow maps",
+      "present": true,
+      "context": "_begin> #include <normal_pars_fragment> #include <lights_lambert_pars_fragment> #include <shadowmap_pars_fragment> #include <bumpmap_pars_fragment> #include <normalmap_pars_fragmen"
+    },
+    {
+      "marker": "distanceRGBA_vert",
+      "meaning": "point/spot shadow (MeshDistanceMaterial)",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "background_vert",
+      "meaning": "Scene.background cube/equirect",
+      "present": true,
+      "context": "on_pars_fragment:a_,uv_pars_fragment:l_,uv_pars_vertex:c_,uv_vertex:h_,worldpos_vertex:u_,background_vert:d_,background_frag:f_,backgroundCube_vert:p_,backgroundCube_frag:m_,cube_v"
+    },
+    {
+      "marker": "cube_uv_reflection_fragment",
+      "meaning": "CubeUVReflectionMapping",
+      "present": true,
+      "context": "groundIntensity; uniform mat3 backgroundRotation; varying vec3 vWorldDirection; #include <cube_uv_reflection_fragment> void main() { #ifdef ENVMAP_TYPE_CUBE vec4 texColor = text"
+    },
+    {
+      "marker": "points_vert",
+      "meaning": "Points",
+      "present": true,
+      "context": "phong_frag:N_,meshphysical_vert:F_,meshphysical_frag:U_,meshtoon_vert:k_,meshtoon_frag:O_,points_vert:B_,points_frag:H_,shadow_vert:G_,shadow_frag:V_,sprite_vert:W_,sprite_frag:X_}"
+    },
+    {
+      "marker": "sprite_vert",
+      "meaning": "Sprite",
+      "present": true,
+      "context": "toon_vert:k_,meshtoon_frag:O_,points_vert:B_,points_frag:H_,shadow_vert:G_,shadow_frag:V_,sprite_vert:W_,sprite_frag:X_},Xe={common:{diffuse:{value:new ge(16777215)},opacity:{value"
+    },
+    {
+      "marker": "normal_pars_fragment",
+      "meaning": "normal maps",
+      "present": true,
+      "context": "ent> #include <fog_pars_fragment> #include <bsdfs> #include <lights_pars_begin> #include <normal_pars_fragment> #include <lights_lambert_pars_fragment> #include <shadowmap_pars_fra"
+    },
+    {
+      "marker": "roughnessmap_pars_fragment",
+      "meaning": "roughness maps",
+      "present": true,
+      "context": "agment> #include <clearcoat_pars_fragment> #include <iridescence_pars_fragment> #include <roughnessmap_pars_fragment> #include <metalnessmap_pars_fragment> #include <logdepthbuf_pa"
+    },
+    {
+      "marker": "logdepthbuf_pars_fragment",
+      "meaning": "logarithmicDepthBuffer",
+      "present": true,
+      "context": "fragment> #include <alphatest_pars_fragment> #include <alphahash_pars_fragment> #include <logdepthbuf_pars_fragment> #include <clipping_planes_pars_fragment> varying vec2 vHighPrec"
+    },
+    {
+      "marker": "dithering_pars_fragment",
+      "meaning": "dithering",
+      "present": true,
+      "context": "at opacity; #ifndef FLAT_SHADED varying vec3 vNormal; #endif #include <common> #include <dithering_pars_fragment> #include <color_pars_fragment> #include <uv_pars_fragment> #inclu"
+    },
+    {
+      "marker": "clipping_planes_pars_fragment",
+      "meaning": "clipping planes",
+      "present": true,
+      "context": "agment> #include <alphahash_pars_fragment> #include <logdepthbuf_pars_fragment> #include <clipping_planes_pars_fragment> varying vec2 vHighPrecisionZW; void main() { vec4 diffuseC"
+    },
+    {
+      "marker": "uv1_pars_vertex",
+      "meaning": "second UV set (aoMap/lightMap)",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "GPUShaderStage",
+      "meaning": "WebGPU marker (should be absent)",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "WebGPURenderer",
+      "meaning": "WebGPU renderer (should be absent)",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "KTX2Loader",
+      "meaning": "KTX2Loader (should be absent)",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "DRACOLoader",
+      "meaning": "DRACOLoader (should be absent)",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "GLTFLoader",
+      "meaning": "GLTFLoader (should be absent)",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "AnimationMixer",
+      "meaning": "AnimationMixer (should be absent)",
+      "present": true,
+      "context": "im,AmbientLight:()=>ca,AnimationAction:()=>Th,AnimationClip:()=>bo,AnimationLoader:()=>j0,AnimationMixer:()=>cd,AnimationObjectGroup:()=>ld,AnimationUtils:()=>K0,ArcCurve:()=>qc,Ar"
+    },
+    {
+      "marker": "CSS2DRenderer",
+      "meaning": "CSS2DRenderer (should be absent)",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "OrbitControls",
+      "meaning": "OrbitControls (should be absent)",
+      "present": false,
+      "context": null
+    },
+    {
+      "marker": "Curve",
+      "meaning": "Curve base class",
+      "present": true,
+      "context": "nLoader:()=>j0,AnimationMixer:()=>cd,AnimationObjectGroup:()=>ld,AnimationUtils:()=>K0,ArcCurve:()=>qc,ArrayCamera:()=>Sh,ArrowHelper:()=>Dd,AttachedBindMode:()=>P0,Audio:()=>wh,Au"
+    },
+    {
+      "marker": "Raycaster",
+      "meaning": "Raycaster",
+      "present": true,
+      "context": "Packing:()=>w1,RGFormat:()=>no,RGIntegerFormat:()=>Dh,RawShaderMaterial:()=>vo,Ray:()=>Kr,Raycaster:()=>md,RectAreaLight:()=>xh,RedFormat:()=>ga,RedIntegerFormat:()=>Nl,ReinhardTon"
+    },
+    {
+      "marker": "AudioContext",
+      "meaning": "three AudioListener/WebAudio",
+      "present": true,
+      "context": "amera:()=>Sh,ArrowHelper:()=>Dd,AttachedBindMode:()=>P0,Audio:()=>wh,AudioAnalyser:()=>ad,AudioContext:()=>wl,AudioListener:()=>rd,AudioLoader:()=>id,AxesHelper:()=>Ld,BackSide:()="
+    }
+  ],
+  "probes": {
+    "shaderChunkTable": {
+      "bytes": 173197,
+      "KiB": 169.1,
+      "gzipKiB": 35.4,
+      "brotliKiB": 29.1,
+      "pctOfBundle": 14
+    },
+    "threeNamespaceMaterialised": {
+      "bytes": 742705,
+      "KiB": 725.3,
+      "gzipKiB": 185.9,
+      "brotliKiB": 151.4
+    },
+    "namedImportsEquivalent": {
+      "bytes": 679060,
+      "KiB": 663.1,
+      "gzipKiB": 189.7,
+      "brotliKiB": 161
+    },
+    "namedImportSymbolCount": 77,
+    "namedImportSymbols": [
+      "ACESFilmicToneMapping",
+      "AdditiveBlending",
+      "AmbientLight",
+      "BackSide",
+      "Box3",
+      "BoxGeometry",
+      "BufferAttribute",
+      "BufferGeometry",
+      "CanvasTexture",
+      "CapsuleGeometry",
+      "CatmullRomCurve3",
+      "CircleGeometry",
+      "ClampToEdgeWrapping",
+      "Clock",
+      "Color",
+      "ConeGeometry",
+      "CylinderGeometry",
+      "DataTexture",
+      "DataUtils",
+      "DepthFormat",
+      "DepthTexture",
+      "DirectionalLight",
+      "DoubleSide",
+      "DynamicDrawUsage",
+      "Euler",
+      "ExtrudeGeometry",
+      "Float32BufferAttribute",
+      "FogExp2",
+      "FrontSide",
+      "Group",
+      "HalfFloatType",
+      "HemisphereLight",
+      "IcosahedronGeometry",
+      "InstancedMesh",
+      "LatheGeometry",
+      "Light",
+      "Line",
+      "LineBasicMaterial",
+      "LineSegments",
+      "LinearFilter",
+      "LinearMipmapLinearFilter",
+      "Matrix3",
+      "Matrix4",
+      "Mesh",
+      "MeshBasicMaterial",
+      "MeshDepthMaterial",
+      "MeshStandardMaterial",
+      "NormalBlending",
+      "PCFShadowMap",
+      "PMREMGenerator",
+      "Path",
+      "PerspectiveCamera",
+      "PlaneGeometry",
+      "Points",
+      "Quaternion",
+      "RGBADepthPacking",
+      "RedFormat",
+      "RepeatWrapping",
+      "RingGeometry",
+      "SRGBColorSpace",
+      "Scene",
+      "ShaderMaterial",
+      "Shape",
+      "SphereGeometry",
+      "Sprite",
+      "SpriteMaterial",
+      "Texture",
+      "TorusGeometry",
+      "TubeGeometry",
+      "UniformsLib",
+      "UniformsUtils",
+      "UnsignedIntType",
+      "Vector2",
+      "Vector3",
+      "Vector4",
+      "WebGLRenderTarget",
+      "WebGLRenderer"
+    ],
+    "namespaceEscapeDetectedIn": [
+      "src/main.js:126 (ctx = { ..., THREE })"
+    ],
+    "potentialSavings": {
+      "note": "three(-ish) bytes if the game stopped hand-exporting the THREE namespace; game source bytes are unchanged in both builds",
+      "threeNamespaceKiB": 725.3,
+      "namedImportsKiB": 663.1,
+      "deltaKiB": 62.2
+    },
+    "typeStrings": {
+      "MeshStandardMaterial": true,
+      "MeshBasicMaterial": true,
+      "ShaderMaterial": true,
+      "SpriteMaterial": true,
+      "LineBasicMaterial": true,
+      "MeshDepthMaterial": true,
+      "UnrealBloomPass": true,
+      "SMAAPass": true,
+      "Instance of": false
+    },
+    "deadWeightStrings": {
+      "No target node found for track": true,
+      "THREE.PropertyBinding": true,
+      "Cannot use two different cache methods": false,
+      "THREE.AnimationLoader": false,
+      "THREE.AudioLoader": false,
+      "THREE.Audio: ": false,
+      "is not a valid DRACO": false
+    }
+  },
+  "allInputs": [
+    {
+      "name": "node_modules/three/build/three.core.js",
+      "bytesInOutput": 377312
+    },
+    {
+      "name": "node_modules/three/build/three.module.js",
+      "bytesInOutput": 366285
+    },
+    {
+      "name": "src/world/props.js",
+      "bytesInOutput": 64465
+    },
+    {
+      "name": "node_modules/three/examples/jsm/postprocessing/SMAAPass.js",
+      "bytesInOutput": 47215
+    },
+    {
+      "name": "src/world/landmarks.js",
+      "bytesInOutput": 46460
+    },
+    {
+      "name": "src/world/animals.js",
+      "bytesInOutput": 33587
+    },
+    {
+      "name": "src/core/textures.js",
+      "bytesInOutput": 30639
+    },
+    {
+      "name": "src/ui/hud.js",
+      "bytesInOutput": 29636
+    },
+    {
+      "name": "src/world/vegetation.js",
+      "bytesInOutput": 29314
+    },
+    {
+      "name": "src/core/audio.js",
+      "bytesInOutput": 22964
+    },
+    {
+      "name": "src/ui/menus.js",
+      "bytesInOutput": 19322
+    },
+    {
+      "name": "src/character/bicycle.js",
+      "bytesInOutput": 15373
+    },
+    {
+      "name": "src/world/layout.js",
+      "bytesInOutput": 14776
+    },
+    {
+      "name": "node_modules/three/examples/jsm/shaders/SMAAShader.js",
+      "bytesInOutput": 13993
+    },
+    {
+      "name": "src/world/particles.js",
+      "bytesInOutput": 13767
+    },
+    {
+      "name": "src/character/pelican.js",
+      "bytesInOutput": 12741
+    },
+    {
+      "name": "src/main.js",
+      "bytesInOutput": 10148
+    },
+    {
+      "name": "src/world/ocean.js",
+      "bytesInOutput": 9483
+    },
+    {
+      "name": "src/world/sky.js",
+      "bytesInOutput": 9045
+    },
+    {
+      "name": "src/world/terrain.js",
+      "bytesInOutput": 8526
+    },
+    {
+      "name": "node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js",
+      "bytesInOutput": 8485
+    },
+    {
+      "name": "src/fx/post.js",
+      "bytesInOutput": 7080
+    },
+    {
+      "name": "src/gameplay/events.js",
+      "bytesInOutput": 5523
+    },
+    {
+      "name": "src/gameplay/camera.js",
+      "bytesInOutput": 5143
+    },
+    {
+      "name": "src/core/utils.js",
+      "bytesInOutput": 5119
+    },
+    {
+      "name": "node_modules/three/examples/jsm/utils/BufferGeometryUtils.js",
+      "bytesInOutput": 3720
+    },
+    {
+      "name": "src/gameplay/controls.js",
+      "bytesInOutput": 3502
+    },
+    {
+      "name": "src/core/input.js",
+      "bytesInOutput": 2732
+    },
+    {
+      "name": "node_modules/three/examples/jsm/postprocessing/EffectComposer.js",
+      "bytesInOutput": 2590
+    },
+    {
+      "name": "src/core/engine.js",
+      "bytesInOutput": 2521
+    },
+    {
+      "name": "src/gameplay/collectibles.js",
+      "bytesInOutput": 2385
+    },
+    {
+      "name": "src/world/environment.js",
+      "bytesInOutput": 2295
+    },
+    {
+      "name": "src/fx/weather.js",
+      "bytesInOutput": 2130
+    },
+    {
+      "name": "src/core/settings.js",
+      "bytesInOutput": 2053
+    },
+    {
+      "name": "src/character/rider.js",
+      "bytesInOutput": 1776
+    },
+    {
+      "name": "node_modules/three/examples/jsm/shaders/OutputShader.js",
+      "bytesInOutput": 1492
+    },
+    {
+      "name": "node_modules/three/examples/jsm/postprocessing/OutputPass.js",
+      "bytesInOutput": 1461
+    },
+    {
+      "name": "node_modules/three/examples/jsm/postprocessing/MaskPass.js",
+      "bytesInOutput": 1096
+    },
+    {
+      "name": "node_modules/three/examples/jsm/postprocessing/RenderPass.js",
+      "bytesInOutput": 992
+    },
+    {
+      "name": "node_modules/three/examples/jsm/shaders/LuminosityHighPassShader.js",
+      "bytesInOutput": 844
+    },
+    {
+      "name": "node_modules/three/examples/jsm/postprocessing/ShaderPass.js",
+      "bytesInOutput": 811
+    },
+    {
+      "name": "src/registry.js",
+      "bytesInOutput": 657
+    },
+    {
+      "name": "node_modules/three/examples/jsm/postprocessing/Pass.js",
+      "bytesInOutput": 617
+    },
+    {
+      "name": "node_modules/three/examples/jsm/shaders/CopyShader.js",
+      "bytesInOutput": 427
+    }
+  ],
+  "buckets": {
+    "three core (node_modules/three/build)": {
+      "bytes": 743597,
+      "KiB": 726.2,
+      "pctOfBundle": 59.9
+    },
+    "three addons (node_modules/three/examples/jsm)": {
+      "bytes": 83743,
+      "KiB": 81.8,
+      "pctOfBundle": 6.8
+    },
+    "three src (node_modules/three/src)": {
+      "bytes": 0,
+      "KiB": 0,
+      "pctOfBundle": 0
+    },
+    "game source (src/)": {
+      "bytes": 413162,
+      "KiB": 403.5,
+      "pctOfBundle": 33.3
+    },
+    "other": {
+      "bytes": 0,
+      "KiB": 0,
+      "pctOfBundle": 0
+    }
+  }
+}

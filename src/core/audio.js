@@ -1348,6 +1348,24 @@ export function createAudio(ctx) {
     } catch (_) { /* ignore */ }
   }
 
+  /**
+   * Page-visibility lifecycle: a hidden tab must not keep synthesising music
+   * and waves in the background. The graph is kept intact, only the context
+   * is suspended/resumed.
+   */
+  function suspend() {
+    try {
+      if (ac && ac.state === 'running' && typeof ac.suspend === 'function') {
+        const p = ac.suspend();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      }
+    } catch (_) { /* ignore */ }
+  }
+
+  function resume() {
+    resumeIfSuspended();
+  }
+
   function init() {
     try {
       if (ready) {
@@ -1393,6 +1411,9 @@ export function createAudio(ctx) {
 
   function update(dt, state) {
     if (!ready) return;
+    // A suspended context does not advance its clock: stepping the graph now
+    // would schedule audio in the past and drift the ambience timeline.
+    if (ac && ac.state === 'suspended') return;
     const step = clamp((typeof dt === 'number' && isFinite(dt)) ? dt : 0.016, 0, 0.1);
     try { readFrame(step, state); } catch (_) { return; }
     try { stepAmbient(step); } catch (_) { /* never throw from the frame loop */ }
@@ -1513,6 +1534,8 @@ export function createAudio(ctx) {
   const api = {
     state: { ready: false },
     init,
+    suspend,
+    resume,
     update,
     sfx,
     setMasterVolume,

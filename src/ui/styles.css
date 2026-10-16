@@ -20,6 +20,9 @@
   --pi-ink: #22201c;
   --pi-ink-80: rgba(34, 32, 28, 0.8);
   --pi-ink-65: rgba(34, 32, 28, 0.65);
+  /* Small-text ink: 9-11px labels need >= 4.5:1 on the cream glass, so they
+     must not use --pi-ink-45 (measured ~2.7:1 - decorative use only). */
+  --pi-ink-mute: rgba(34, 32, 28, 0.68);
   --pi-ink-45: rgba(34, 32, 28, 0.45);
   --pi-ink-25: rgba(34, 32, 28, 0.25);
   --pi-hair: rgba(34, 32, 28, 0.16);
@@ -28,6 +31,8 @@
   --pi-teal-deep: #12464d;
   --pi-teal-pale: #a8cbc6;
   --pi-poppy: #e0523f;
+  /* Poppy is 3.4:1 on cream - fine for shapes, too light for small text. */
+  --pi-poppy-deep: #a93a2b;
   --pi-gold: #e8b64c;
   --pi-foam: #f2fbfb;
   --pi-glass: linear-gradient(180deg, rgba(247, 241, 228, 0.94), rgba(239, 230, 210, 0.9));
@@ -37,6 +42,69 @@
   --pi-sans: Optima, "Avenir Next", "Gill Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --pi-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --pi-r-hud: 46px;
+  /* UI scale (settings) and notch/safe-area insets. */
+  --pi-ui-scale: 1;
+  --pi-safe-t: env(safe-area-inset-top, 0px);
+  --pi-safe-r: env(safe-area-inset-right, 0px);
+  --pi-safe-b: env(safe-area-inset-bottom, 0px);
+  --pi-safe-l: env(safe-area-inset-left, 0px);
+}
+
+/* --------------------------------------------------------------------------
+   1b. Page baseline - the canvas owns the viewport, nothing scrolls.
+
+   Without this reset the browser default body margin (8px) pushed the
+   engine-sized canvas past the viewport and produced both scrollbars on every
+   screen size; the HUD (position: absolute) then anchored to the initial
+   containing block instead of the viewport and drifted with the page.
+   -------------------------------------------------------------------------- */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #070a12;
+  overscroll-behavior: none;
+}
+
+body {
+  /* Kills double-tap zoom but keeps pinch-zoom (WCAG 1.4.4 friendly). */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+#game-canvas {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+#ui-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Screen-reader-only text (live regions, form hints). */
+.pi-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* --------------------------------------------------------------------------
@@ -60,8 +128,18 @@
 
 .pi-hud :focus-visible,
 .pi-menus :focus-visible {
-  outline: 1px solid var(--pi-teal);
-  outline-offset: 3px;
+  outline: 2px solid var(--pi-teal);
+  outline-offset: 2px;
+}
+
+/* One visible focus ring for every interactive control, keyboard or touch. */
+.pi-menus button:focus-visible,
+.pi-menus input:focus-visible,
+.pi-hud button:focus-visible,
+.pi-touch button:focus-visible,
+.pi-touch [tabindex]:focus-visible {
+  outline: 2px solid var(--pi-teal);
+  outline-offset: 2px;
 }
 
 .pi-serif {
@@ -71,11 +149,11 @@
 
 .pi-micro {
   font-family: var(--pi-sans);
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--pi-ink-45);
+  color: var(--pi-ink-mute);
   white-space: nowrap;
 }
 
@@ -132,27 +210,27 @@
 }
 
 .pi-hud-corner--tl {
-  top: var(--pi-r-hud);
-  left: var(--pi-r-hud);
+  top: calc(var(--pi-r-hud) + var(--pi-safe-t));
+  left: calc(var(--pi-r-hud) + var(--pi-safe-l));
   flex-direction: column;
   align-items: flex-start;
 }
 
 .pi-hud-corner--tr {
-  top: var(--pi-r-hud);
-  right: var(--pi-r-hud);
+  top: calc(var(--pi-r-hud) + var(--pi-safe-t));
+  right: calc(var(--pi-r-hud) + var(--pi-safe-r));
   flex-direction: column;
   align-items: flex-end;
 }
 
 .pi-hud-corner--br {
-  right: var(--pi-r-hud);
-  bottom: calc(var(--pi-r-hud) - 8px);
+  right: calc(var(--pi-r-hud) + var(--pi-safe-r));
+  bottom: calc(var(--pi-r-hud) - 8px + var(--pi-safe-b));
 }
 
 .pi-hud-corner--bl {
-  left: var(--pi-r-hud);
-  bottom: calc(var(--pi-r-hud) - 4px);
+  left: calc(var(--pi-r-hud) + var(--pi-safe-l));
+  bottom: calc(var(--pi-r-hud) - 4px + var(--pi-safe-b));
 }
 
 /* Ink-on-glass chip used by the feather counter, clock, camera mode, race. */
@@ -173,10 +251,10 @@
 }
 
 .pi-chip__label {
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--pi-ink-45);
+  color: var(--pi-ink-mute);
 }
 
 .pi-chip__value {
@@ -226,7 +304,7 @@
 
 .pi-compass {
   position: absolute;
-  top: calc(var(--pi-r-hud) - 12px);
+  top: calc(var(--pi-r-hud) - 12px + var(--pi-safe-t));
   left: 50%;
   transform: translateX(-50%);
   width: min(52vw, 440px);
@@ -296,7 +374,7 @@
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--pi-sans);
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.18em;
   color: var(--pi-ink-65);
@@ -333,10 +411,10 @@
 
 .pi-compass__count {
   margin-top: 1px;
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--pi-ink-45);
+  color: var(--pi-ink-mute);
   font-variant-numeric: tabular-nums;
 }
 
@@ -407,9 +485,9 @@
 }
 
 .pi-speedo__label {
-  fill: var(--pi-ink-45);
+  fill: var(--pi-ink-mute);
   font-family: var(--pi-sans);
-  font-size: 8.5px;
+  font-size: 10.5px;
   letter-spacing: 0.16em;
 }
 
@@ -469,10 +547,10 @@
 .pi-speedo__unit {
   display: block;
   margin-top: 3px;
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: var(--pi-ink-45);
+  color: var(--pi-ink-mute);
 }
 
 .pi-speedo.is-fast .pi-speedo__fill {
@@ -528,9 +606,9 @@
 }
 
 .pi-minimap__count {
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.14em;
-  color: var(--pi-ink-45);
+  color: var(--pi-ink-mute);
   font-variant-numeric: tabular-nums;
 }
 
@@ -547,10 +625,10 @@
   justify-content: space-between;
   gap: 6px;
   padding: 6px 2px 0;
-  font-size: 8.5px;
+  font-size: 10.5px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--pi-ink-45);
+  color: var(--pi-ink-mute);
 }
 
 #pi-hud.is-photo .pi-minimap {
@@ -590,10 +668,10 @@
 }
 
 .pi-race__key {
-  font-size: 9px;
+  font-size: 10.5px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--pi-ink-45);
+  color: var(--pi-ink-mute);
 }
 
 .pi-race__val {
@@ -646,10 +724,10 @@
   display: inline-block;
   margin-top: 8px;
   padding-top: 6px;
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: var(--pi-poppy);
+  color: var(--pi-poppy-deep);
   opacity: 0;
 }
 
@@ -738,7 +816,7 @@
 
 .pi-discovery__en {
   margin: 6px 0 0;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.34em;
   text-transform: uppercase;
   color: var(--pi-teal);
@@ -765,8 +843,8 @@
 
 .pi-toasts {
   position: absolute;
-  left: var(--pi-r-hud);
-  bottom: 76px;
+  left: calc(var(--pi-r-hud) + var(--pi-safe-l));
+  bottom: 92px;
   display: flex;
   flex-direction: column-reverse;
   gap: 8px;
@@ -809,7 +887,7 @@
 
 .pi-toast__sub {
   margin-top: 3px;
-  font-size: 11px;
+  font-size: 11.5px;
   letter-spacing: 0.04em;
   color: var(--pi-ink-65);
 }
@@ -908,8 +986,9 @@
   left: 6vw;
   padding: 12px 18px 14px;
   color: var(--pi-paper);
-  background: rgba(34, 32, 28, 0.4);
-  border: 1px solid rgba(247, 241, 228, 0.24);
+  /* 0.72 keeps the 11px readout labels >= 4.5:1 even over blown-out water. */
+  background: rgba(34, 32, 28, 0.72);
+  border: 1px solid rgba(247, 241, 228, 0.32);
   border-radius: 3px;
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
@@ -917,10 +996,10 @@
 }
 
 .pi-photo__mode {
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: rgba(247, 241, 228, 0.75);
+  color: rgba(247, 241, 228, 0.94);
 }
 
 .pi-photo__focal {
@@ -951,13 +1030,13 @@
   bottom: 7.5vh;
   transform: translateX(-50%);
   padding: 9px 20px;
-  border: 1px solid rgba(247, 241, 228, 0.34);
+  border: 1px solid rgba(247, 241, 228, 0.42);
   border-radius: 99px;
-  background: rgba(34, 32, 28, 0.42);
+  background: rgba(34, 32, 28, 0.66);
   -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
   color: var(--pi-paper);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.16em;
   white-space: nowrap;
 }
@@ -970,14 +1049,14 @@
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  border: 1px solid rgba(247, 241, 228, 0.34);
+  border: 1px solid rgba(247, 241, 228, 0.42);
   border-radius: 99px;
-  background: rgba(34, 32, 28, 0.42);
+  background: rgba(34, 32, 28, 0.66);
   -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
   color: var(--pi-paper);
   font-family: var(--pi-sans);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   cursor: pointer;
@@ -1021,10 +1100,10 @@
 .pi-paused__sub {
   margin-top: 2px;
   text-align: center;
-  font-size: 9px;
+  font-size: 10.5px;
   letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: var(--pi-ink-45);
+  color: var(--pi-ink-mute);
 }
 
 .pi-damage {
@@ -1067,10 +1146,10 @@
 }
 
 .pi-loading__brand {
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.42em;
   text-transform: uppercase;
-  color: rgba(247, 241, 228, 0.5);
+  color: rgba(247, 241, 228, 0.74);
 }
 
 .pi-loading__title {
@@ -1100,17 +1179,17 @@
   display: flex;
   justify-content: space-between;
   width: min(420px, 62vw);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.2em;
-  color: rgba(247, 241, 228, 0.66);
+  color: rgba(247, 241, 228, 0.8);
   font-variant-numeric: tabular-nums;
 }
 
 .pi-loading__tip {
   margin-top: 10px;
-  font-size: 11.5px;
+  font-size: 12px;
   letter-spacing: 0.16em;
-  color: rgba(247, 241, 228, 0.72);
+  color: rgba(247, 241, 228, 0.84);
 }
 
 .pi-loading__tip.is-swap {
@@ -1374,10 +1453,10 @@
 
 .pi-title__en {
   margin: 14px 0 0;
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.42em;
   text-transform: uppercase;
-  color: var(--pi-ink-65);
+  color: var(--pi-ink-mute);
 }
 
 .pi-title__rule {
@@ -1469,10 +1548,10 @@
 }
 
 .pi-btn__en {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--pi-ink-45);
+  color: var(--pi-ink-mute);
 }
 
 .pi-btn--primary {
@@ -1510,7 +1589,7 @@
 }
 
 .pi-btn--danger .pi-btn__zh {
-  color: var(--pi-poppy);
+  color: var(--pi-poppy-deep);
 }
 
 /* Small toggle/pill group (quality, time, language) */
@@ -1544,6 +1623,69 @@
   background: var(--pi-ink);
   border-color: var(--pi-ink);
   color: var(--pi-paper);
+}
+
+.pi-option--toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.pi-option__state {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.pi-option--toggle.is-on .pi-option__state {
+  opacity: 0.85;
+}
+
+/* --------------------------------------------------------------------------
+   17b. UI scale - one CSS variable the settings panel writes
+   -------------------------------------------------------------------------- */
+
+#pi-hud,
+.pi-menus {
+  font-size: calc(14px * var(--pi-ui-scale));
+}
+
+.pi-chip__value {
+  font-size: calc(15px * var(--pi-ui-scale));
+}
+
+.pi-chip__value--big {
+  font-size: calc(19px * var(--pi-ui-scale));
+}
+
+.pi-speedo__value {
+  font-size: calc(40px * var(--pi-ui-scale));
+}
+
+.pi-btn {
+  padding: calc(11px * var(--pi-ui-scale)) calc(18px * var(--pi-ui-scale)) calc(10px * var(--pi-ui-scale));
+}
+
+.pi-btn__zh {
+  font-size: calc(17px * var(--pi-ui-scale));
+}
+
+.pi-card__title {
+  font-size: calc(30px * var(--pi-ui-scale));
+}
+
+.pi-option {
+  font-size: calc(12.5px * var(--pi-ui-scale));
+}
+
+.pi-settings__label {
+  font-size: calc(12px * var(--pi-ui-scale));
+}
+
+.pi-discovery__name {
+  font-size: calc(clamp(28px, 3.4vw, 42px) * var(--pi-ui-scale));
 }
 
 /* --------------------------------------------------------------------------
@@ -1614,9 +1756,9 @@
 }
 
 .pi-card__note {
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.1em;
-  color: var(--pi-ink-45);
+  color: var(--pi-ink-mute);
 }
 
 /* --------------------------------------------------------------------------
@@ -1649,10 +1791,10 @@
 }
 
 .pi-settings__en {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--pi-ink-45);
+  color: var(--pi-ink-mute);
 }
 
 .pi-settings__row {
@@ -1758,7 +1900,7 @@
   flex: 0 0 auto;
   padding: 2px 7px 1px;
   font-family: var(--pi-sans);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--pi-ink);
@@ -1830,9 +1972,9 @@
 }
 
 .pi-menu-loading__label {
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.24em;
-  color: rgba(247, 241, 228, 0.7);
+  color: rgba(247, 241, 228, 0.82);
 }
 
 .pi-menu-loading__tip {
@@ -1895,7 +2037,7 @@
   /* shorter window needs the tick labels pulled down so they are not clipped */
   .pi-ctick__label {
     bottom: 12px;
-    font-size: 8.5px;
+    font-size: 9.5px;
   }
 
   .pi-ctick--cardinal .pi-ctick__label {
@@ -1935,12 +2077,16 @@
   }
 
   .pi-speedo__value {
-    font-size: 30px;
+    font-size: calc(30px * var(--pi-ui-scale));
   }
 
+  /* Phones: the speedometer owns the bottom-right corner, so toasts move up
+     into the empty band under the top-left chips instead of covering the
+     dial (they used to overlap it by ~73x63 px in portrait). */
   .pi-toasts {
-    bottom: 62px;
-    width: min(280px, 64vw);
+    top: 236px;
+    bottom: auto;
+    width: min(206px, 55vw);
   }
 
   .pi-title__buttons {
@@ -1962,15 +2108,232 @@
   }
 
   .pi-photo__hint {
-    font-size: 10px;
-    letter-spacing: 0.1em;
+    font-size: 11px;
+    letter-spacing: 0.08em;
     padding: 8px 14px;
+    /* keep clear of the grid chip pinned to the right edge */
+    left: 6vw;
+    right: calc(6vw + 84px);
+    transform: none;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+/* Portrait phones (375x667 and friends). */
+@media (max-width: 480px) {
+  .pi-title__content {
+    padding: 6vh 7vw 16vh;
+    gap: 18px;
+  }
+
+  .pi-title__main {
+    font-size: clamp(46px, 16vw, 74px);
+  }
+
+  .pi-title__lockup {
+    padding-top: 2vh;
+  }
+
+  .pi-title__hint {
+    font-size: 10.5px;
+    padding: 10px 14px 11px;
+  }
+
+  .pi-card,
+  .pi-card--wide {
+    padding: 20px 18px 18px;
+  }
+
+  .pi-compass {
+    width: min(86vw, 320px);
+  }
+
+  .pi-toasts {
+    top: 236px;
+    width: min(184px, 50vw);
+  }
+
+  /* Audio captions sit above the dial so the numbers stay readable. */
+  .pi-caption {
+    bottom: calc(var(--pi-r-hud) + 168px + var(--pi-safe-b));
+    font-size: 11.5px;
+    max-width: 78vw;
+  }
+
+  .pi-damage__label {
+    top: 34%;
+  }
+}
+
+/* Landscape phones / small tablets: the top-right column must not run off the
+   bottom edge (it did by 29px at 667x375) and the dial is compacted. */
+@media (orientation: landscape) and (max-height: 560px) {
+  :root {
+    --pi-r-hud: 14px;
+  }
+
+  .pi-compass {
+    top: calc(6px + var(--pi-safe-t));
+    width: min(52vw, 300px);
+    padding: 3px 10px 5px;
+  }
+
+  .pi-compass__window {
+    height: 24px;
+  }
+
+  .pi-ctick__label {
+    bottom: 10px;
+    font-size: 9px;
+  }
+
+  .pi-hud-corner--tl,
+  .pi-hud-corner--tr {
+    top: calc(46px + var(--pi-safe-t));
+    gap: 6px;
+  }
+
+  .pi-chip {
+    padding: 5px 9px 4px;
+  }
+
+  .pi-chip__value {
+    font-size: calc(13px * var(--pi-ui-scale));
+  }
+
+  .pi-chip__value--big {
+    font-size: calc(16px * var(--pi-ui-scale));
+  }
+
+  .pi-minimap {
+    width: 116px;
+  }
+
+  .pi-minimap__canvas {
+    width: 88px;
+    height: 88px;
+  }
+
+  .pi-minimap__inner {
+    padding: 6px 6px 5px;
+  }
+
+  .pi-minimap__legend {
+    font-size: 9.5px;
+  }
+
+  /* One compact strip instead of three stacked rows: the vertical column ran
+     into the speedometer at 667x375. */
+  .pi-race {
+    width: 168px;
+    padding: 6px 9px 5px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 9px;
+  }
+
+  .pi-race__row {
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    padding: 0;
+  }
+
+  .pi-race__row + .pi-race__row {
+    border-top: 0;
+    border-left: 1px solid var(--pi-hair);
+    padding-left: 9px;
+  }
+
+  .pi-race__key {
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .pi-race__val {
+    font-size: 12.5px;
+  }
+
+  .pi-race__val {
+    font-size: 13px;
+  }
+
+  .pi-race__val--time {
+    font-size: 13px;
+  }
+
+  .pi-race-banner {
+    top: 44%;
+    padding: 12px 22px 11px;
+  }
+
+  .pi-race-banner__title {
+    font-size: 22px;
+  }
+
+  .pi-race-banner__time {
+    font-size: 19px;
+  }
+
+  .pi-speedo {
+    width: 132px;
+    height: 96px;
+  }
+
+  .pi-speedo__value {
+    font-size: calc(24px * var(--pi-ui-scale));
+  }
+
+  .pi-speedo__unit {
+    font-size: 9.5px;
+    letter-spacing: 0.2em;
+  }
+
+  .pi-toasts {
+    top: auto;
+    bottom: calc(56px + var(--pi-safe-b));
+    width: min(220px, 34vw);
+  }
+
+  .pi-caption {
+    bottom: calc(var(--pi-r-hud) + 18px + var(--pi-safe-b));
+    max-width: 46vw;
+  }
+
+  .pi-photo__hint {
+    bottom: 5.5vh;
+  }
+
+  .pi-photo__gridchip {
+    bottom: 5.5vh;
+    font-size: 10px;
+  }
+
+  .pi-photo__readout {
+    top: 4.5vh;
+    padding: 8px 12px 9px;
+  }
+
+  .pi-photo__focal {
+    font-size: 22px;
+  }
+
+  .pi-screen__inner {
+    padding: 4vh 5vw;
+  }
+
+  .pi-card {
+    padding: 18px 20px 16px;
   }
 }
 
 @media (max-height: 620px) {
   .pi-toasts {
-    bottom: 56px;
+    bottom: calc(56px + var(--pi-safe-b));
   }
 
   .pi-title__main {
@@ -1978,9 +2341,458 @@
   }
 }
 
+/* While the on-screen pad is up the camera-mode chip is redundant: the pad
+   owns a 视角 button that shows the active mode, and the bottom-left corner
+   belongs to the joystick. Toasts move down to clear the extra TL chip. */
+body.pi-has-touch .pi-hud-corner--bl {
+  display: none;
+}
+
+body.pi-has-touch .pi-toasts {
+  top: 236px;
+  bottom: auto;
+}
+
+body.pi-has-touch .pi-caption {
+  bottom: calc(var(--pi-r-hud) + 250px + var(--pi-safe-b));
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  body.pi-has-touch .pi-toasts {
+    top: auto;
+    bottom: calc(56px + var(--pi-safe-b));
+  }
+
+  body.pi-has-touch .pi-caption {
+    bottom: calc(var(--pi-r-hud) + 150px + var(--pi-safe-b));
+  }
+}
+
 /* --------------------------------------------------------------------------
    21. Motion
    -------------------------------------------------------------------------- */
+
+/* --------------------------------------------------------------------------
+   20b. Touch controls (created by src/ui/touch.js)
+   -------------------------------------------------------------------------- */
+
+.pi-touch {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  display: none;
+  font-family: var(--pi-sans);
+  color: var(--pi-paper);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: none;
+}
+
+.pi-touch.is-on {
+  display: block;
+}
+
+.pi-touch.is-off {
+  display: none;
+}
+
+/* Frozen world (pause / photo / title): dim and stop swallowing pointers so
+   photo-mode drag-look keeps the whole frame. */
+.pi-touch.is-idle {
+  opacity: 0.24;
+  transition: opacity 260ms var(--pi-ease);
+}
+
+.pi-touch.is-idle .pi-touch__zone,
+.pi-touch.is-idle .pi-touch__pad,
+.pi-touch.is-idle .pi-touch__actions {
+  pointer-events: none;
+}
+
+/* Photo mode: drag-to-look needs the frame, so keep only the action column
+   and tuck it into the top-right corner (the readout is top-left). */
+.pi-touch.is-photo .pi-touch__zone,
+.pi-touch.is-photo .pi-touch__pad,
+.pi-touch.is-photo .pi-touch__hint {
+  display: none;
+}
+
+.pi-touch.is-photo {
+  opacity: 1;
+}
+
+.pi-touch.is-photo .pi-touch__actions {
+  left: auto;
+  right: calc(var(--pi-safe-r) + 10px);
+  top: calc(var(--pi-safe-t) + 8px);
+  bottom: auto;
+}
+
+.pi-touch__zone {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 52%;
+  height: 78%;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.pi-touch__ring {
+  position: absolute;
+  width: 108px;
+  height: 108px;
+  margin: -54px 0 0 -54px;
+  border-radius: 50%;
+  border: 1px dashed rgba(247, 241, 228, 0.42);
+  background: radial-gradient(circle at 50% 50%, rgba(12, 20, 28, 0.28) 0%, rgba(12, 20, 28, 0) 70%);
+  opacity: 0;
+  transition: opacity 160ms var(--pi-ease);
+  pointer-events: none;
+}
+
+.pi-touch__ring.is-on {
+  opacity: 1;
+}
+
+.pi-touch__stick {
+  position: absolute;
+  left: calc(var(--pi-safe-l) + 20px);
+  bottom: calc(var(--pi-safe-b) + 20px);
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  border: 1px solid rgba(247, 241, 228, 0.3);
+  background: rgba(12, 20, 28, 0.3);
+  box-shadow: inset 0 0 24px -10px rgba(247, 241, 228, 0.4);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  opacity: 0.75;
+  transition: opacity 200ms var(--pi-ease);
+  pointer-events: none;
+}
+
+.pi-touch__stick.is-active {
+  opacity: 1;
+}
+
+.pi-touch__knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 58px;
+  height: 58px;
+  margin: -29px 0 0 -29px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, rgba(247, 241, 228, 0.98), rgba(213, 198, 168, 0.85));
+  border: 1px solid rgba(34, 32, 28, 0.38);
+  box-shadow: 0 8px 18px -10px rgba(0, 0, 0, 0.8);
+  transition: transform 140ms var(--pi-ease);
+}
+
+.pi-touch__axis {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(247, 241, 228, 0.6);
+}
+
+.pi-touch__axis--l {
+  left: 7px;
+}
+
+.pi-touch__axis--r {
+  right: 7px;
+}
+
+.pi-touch__pad {
+  position: absolute;
+  right: calc(var(--pi-safe-r) + 16px);
+  bottom: calc(var(--pi-r-hud) + 158px + var(--pi-safe-b));
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.pi-touch__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 1px solid rgba(247, 241, 228, 0.36);
+  background: rgba(12, 20, 28, 0.44);
+  color: var(--pi-paper);
+  font-family: inherit;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  transition: transform 120ms var(--pi-ease), background 120ms var(--pi-ease);
+}
+
+.pi-touch__btn--go {
+  width: 104px;
+  height: 104px;
+  background: rgba(18, 70, 77, 0.62);
+  border-color: rgba(247, 241, 228, 0.5);
+}
+
+.pi-touch__btn.is-down {
+  transform: scale(0.94);
+  background: rgba(169, 58, 43, 0.66);
+}
+
+.pi-touch__btn--go.is-down {
+  background: rgba(31, 111, 120, 0.92);
+}
+
+.pi-touch__btn-zh {
+  font-size: 17px;
+  letter-spacing: 0.1em;
+}
+
+.pi-touch__btn-en {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  opacity: 0.78;
+}
+
+.pi-touch__actions {
+  position: absolute;
+  left: calc(var(--pi-safe-l) + 10px);
+  bottom: calc(var(--pi-safe-b) + 150px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.pi-touch__act {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(247, 241, 228, 0.34);
+  background: rgba(12, 20, 28, 0.42);
+  color: var(--pi-paper);
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  transition: transform 120ms var(--pi-ease), background 120ms var(--pi-ease);
+}
+
+.pi-touch__act.is-down {
+  transform: scale(0.92);
+  background: rgba(31, 111, 120, 0.85);
+}
+
+.pi-touch__act-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  min-width: 18px;
+  padding: 1px 3px 0;
+  border-radius: 9px;
+  background: var(--pi-gold);
+  color: #22201c;
+  font-size: 9px;
+  letter-spacing: 0;
+}
+
+.pi-touch__hint {
+  position: absolute;
+  left: calc(var(--pi-safe-l) + 10px);
+  right: auto;
+  bottom: calc(var(--pi-safe-b) + 168px);
+  max-width: min(240px, 62vw);
+  padding: 8px 12px;
+  border-radius: 3px;
+  background: rgba(12, 20, 28, 0.62);
+  border: 1px solid rgba(247, 241, 228, 0.24);
+  color: var(--pi-paper);
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transition: opacity 320ms var(--pi-ease);
+  pointer-events: none;
+}
+
+.pi-touch.is-hinting .pi-touch__hint {
+  opacity: 1;
+}
+
+/* Portrait phones: 4 action buttons, pedal pad above the compact dial. */
+@media (max-width: 480px) {
+  .pi-touch__act {
+    width: 40px;
+    height: 40px;
+    font-size: 10.5px;
+  }
+
+  .pi-touch__actions {
+    bottom: calc(var(--pi-safe-b) + 160px);
+  }
+
+  .pi-touch__btn {
+    width: 82px;
+    height: 82px;
+  }
+
+  .pi-touch__btn--go {
+    width: 96px;
+    height: 96px;
+  }
+
+  .pi-touch__pad {
+    bottom: calc(var(--pi-r-hud) + 130px + var(--pi-safe-b));
+  }
+
+  .pi-touch__act--more {
+    display: none;
+  }
+
+  /* Keep the first-run hint clear of the brake pad and the joystick. */
+  .pi-touch__hint {
+    bottom: calc(var(--pi-safe-b) + 168px);
+    max-width: 150px;
+    font-size: 10.5px;
+  }
+}
+
+/* Landscape phones: everything sits on the bottom band, actions on top. */
+@media (orientation: landscape) and (max-height: 560px) {
+  .pi-touch__stick {
+    width: 112px;
+    height: 112px;
+    left: calc(var(--pi-safe-l) + 14px);
+    bottom: calc(var(--pi-safe-b) + 12px);
+  }
+
+  .pi-touch__knob {
+    width: 50px;
+    height: 50px;
+    margin: -25px 0 0 -25px;
+  }
+
+  .pi-touch__btn {
+    width: 74px;
+    height: 74px;
+  }
+
+  .pi-touch__btn--go {
+    width: 84px;
+    height: 84px;
+  }
+
+  .pi-touch__btn-zh {
+    font-size: 14px;
+  }
+
+  .pi-touch__pad {
+    right: calc(var(--pi-safe-r) + 152px);
+    bottom: calc(var(--pi-safe-b) + 10px);
+  }
+
+  .pi-touch__actions {
+    left: 50%;
+    right: auto;
+    top: calc(var(--pi-safe-t) + 90px);
+    bottom: auto;
+    transform: translateX(-50%);
+    flex-direction: row;
+    gap: 7px;
+  }
+
+  .pi-touch__act {
+    width: 36px;
+    height: 36px;
+    font-size: 9.5px;
+  }
+
+  .pi-touch__hint {
+    left: calc(var(--pi-safe-l) + 136px);
+    bottom: calc(var(--pi-safe-b) + 12px);
+    top: auto;
+    max-width: 188px;
+    font-size: 10px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   20c. Audio captions, HUD help chip, damage label
+   -------------------------------------------------------------------------- */
+
+.pi-caption {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--pi-r-hud) + 26px + var(--pi-safe-b));
+  transform: translateX(-50%);
+  max-width: 42vw;
+  padding: 6px 14px 7px;
+  border-radius: 99px;
+  background: rgba(34, 32, 28, 0.68);
+  border: 1px solid rgba(247, 241, 228, 0.3);
+  color: var(--pi-paper);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 220ms var(--pi-ease);
+  pointer-events: none;
+  z-index: 9;
+}
+
+.pi-caption.is-on {
+  opacity: 1;
+}
+
+.pi-chip--btn {
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+  color: var(--pi-ink);
+}
+
+.pi-chip--btn:hover,
+.pi-chip--btn:focus-visible {
+  background: #f3e3c4;
+}
+
+.pi-damage__label {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  padding: 6px 16px 7px;
+  border-radius: 3px;
+  background: rgba(34, 32, 28, 0.7);
+  border: 1px solid rgba(247, 241, 228, 0.36);
+  color: var(--pi-paper);
+  font-family: var(--pi-serif);
+  font-size: 15px;
+  letter-spacing: 0.22em;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pi-damage.is-on .pi-damage__label {
+  animation: pi-fade-in 420ms var(--pi-ease) both;
+  opacity: 1;
+}
 
 @keyframes pi-hud-in {
   from {

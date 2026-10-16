@@ -11,6 +11,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
 
 const TESTS = [
+  'test-engine.mjs',
   'test-layout.mjs',
   'test-character.mjs',
   'test-vegetation.mjs',
@@ -19,6 +20,8 @@ const TESTS = [
   'test-life.mjs',
   'test-audio.mjs',
   'test-ui.mjs',
+  'test-gameplay.mjs',
+  'test-mobile.mjs',
 ];
 
 let failed = 0;

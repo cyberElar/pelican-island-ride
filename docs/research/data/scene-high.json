@@ -1,0 +1,920 @@
+{
+  "quality": "high",
+  "preset": {
+    "label": "高画质",
+    "renderScale": 1,
+    "pixelRatioCap": 1.5,
+    "shadows": true,
+    "shadowMapSize": 3072,
+    "softShadows": true,
+    "shadowDistance": 95,
+    "bloom": true,
+    "bloomStrength": 0.42,
+    "godrays": true,
+    "grain": true,
+    "vignette": true,
+    "chromatic": true,
+    "smaa": true,
+    "anisotropy": 8,
+    "terrainSegments": 400,
+    "heightTextureSize": 768,
+    "treeDensity": 1,
+    "grassDensity": 1,
+    "flowerDensity": 1,
+    "foliageShadows": true,
+    "animalScale": 1,
+    "particleScale": 1,
+    "oceanSegments": 160,
+    "cloudLayers": 3,
+    "viewDistance": 18000,
+    "fogDensity": 0.000058
+  },
+  "renderer": {
+    "calls": 1,
+    "triangles": 1,
+    "points": 0,
+    "lines": 0,
+    "programs": 76,
+    "geometries": 485,
+    "textures": 195,
+    "autoReset": true
+  },
+  "sceneTotals": {
+    "meshes": 914,
+    "instancedMeshes": 473,
+    "instances": 119721,
+    "points": 7,
+    "lines": 3,
+    "sprites": 27,
+    "shadowsCast": 467,
+    "shadowsReceive": 468,
+    "frustumCulledOff": 41,
+    "visibleMeshes": 886,
+    "uniqueMaterials": 197,
+    "transparentMaterials": 54,
+    "doubleSided": 432,
+    "alphaTestMats": 375,
+    "uniqueGeometries": 511,
+    "geometryBytes": 33780420,
+    "geometryMiB": 32.22,
+    "uniqueTextures": 171,
+    "textureBytes": 65732551,
+    "textureMiB": 62.69,
+    "totalVerts": 617138,
+    "matrixAutoUpdateOn": 1050,
+    "matrixAutoUpdateOff": 0
+  },
+  "materialTypes": [
+    [
+      "MeshStandardMaterial",
+      927
+    ],
+    [
+      "SpriteMaterial",
+      27
+    ],
+    [
+      "MeshBasicMaterial",
+      18
+    ],
+    [
+      "ShaderMaterial",
+      11
+    ],
+    [
+      "LineBasicMaterial",
+      3
+    ]
+  ],
+  "groups": [
+    {
+      "name": "vegetation",
+      "tris": 1280293,
+      "renderables": 428,
+      "draws": 428,
+      "castShadow": 47
+    },
+    {
+      "name": "terrain",
+      "tris": 338016,
+      "renderables": 8,
+      "draws": 8,
+      "castShadow": 0
+    },
+    {
+      "name": "props",
+      "tris": 158118,
+      "renderables": 99,
+      "draws": 99,
+      "castShadow": 95
+    },
+    {
+      "name": "water",
+      "tris": 70892,
+      "renderables": 13,
+      "draws": 13,
+      "castShadow": 0
+    },
+    {
+      "name": "landmarks",
+      "tris": 27548.333333333332,
+      "renderables": 165,
+      "draws": 165,
+      "castShadow": 142
+    },
+    {
+      "name": "rider",
+      "tris": 25154,
+      "renderables": 172,
+      "draws": 172,
+      "castShadow": 172
+    },
+    {
+      "name": "animals",
+      "tris": 23672,
+      "renderables": 31,
+      "draws": 31,
+      "castShadow": 11
+    },
+    {
+      "name": "feathers",
+      "tris": 7520,
+      "renderables": 1,
+      "draws": 1,
+      "castShadow": 0
+    },
+    {
+      "name": "sky",
+      "tris": 1840,
+      "renderables": 1,
+      "draws": 1,
+      "castShadow": 0
+    },
+    {
+      "name": "particles",
+      "tris": 675.3333333333333,
+      "renderables": 6,
+      "draws": 6,
+      "castShadow": 0
+    },
+    {
+      "name": "weather",
+      "tris": 652,
+      "renderables": 27,
+      "draws": 27,
+      "castShadow": 0
+    }
+  ],
+  "topGeometries": [
+    {
+      "uuid": "fd03b7bf-9b9b-41a8-a51f-2beaf3508c6f",
+      "name": "(unnamed)",
+      "bytes": 14774468,
+      "verts": 160801,
+      "indexed": true,
+      "indexCount": 960000,
+      "attributes": [
+        "position",
+        "color",
+        "aSplat",
+        "aSplat2",
+        "aJit",
+        "normal"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "d5448b6f-a0af-463a-8e19-b163b22ef3f8",
+      "name": "(unnamed)",
+      "bytes": 2873376,
+      "verts": 65304,
+      "indexed": false,
+      "indexCount": 0,
+      "attributes": [
+        "position",
+        "normal",
+        "uv",
+        "color"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "020cc2e7-e7d4-4f19-8055-3133db45198d",
+      "name": "(unnamed)",
+      "bytes": 1767216,
+      "verts": 40164,
+      "indexed": false,
+      "indexCount": 0,
+      "attributes": [
+        "position",
+        "normal",
+        "uv",
+        "color"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "a8a229cb-234d-4229-9642-af2a7ad38994",
+      "name": "(unnamed)",
+      "bytes": 1408176,
+      "verts": 32004,
+      "indexed": false,
+      "indexCount": 0,
+      "attributes": [
+        "position",
+        "normal",
+        "uv",
+        "color"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "077b73e3-ed61-4622-b5af-1cc34e96e7b3",
+      "name": "(unnamed)",
+      "bytes": 1331616,
+      "verts": 30264,
+      "indexed": false,
+      "indexCount": 0,
+      "attributes": [
+        "position",
+        "normal",
+        "uv",
+        "color"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "56a07124-133a-4698-817a-4e58c20c59c6",
+      "name": "(unnamed)",
+      "bytes": 1240356,
+      "verts": 25921,
+      "indexed": true,
+      "indexCount": 153600,
+      "attributes": [
+        "position",
+        "normal",
+        "uv",
+        "aWaterY"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "6fe13f49-591a-4ee7-b694-645881aabfc3",
+      "name": "(unnamed)",
+      "bytes": 986832,
+      "verts": 22428,
+      "indexed": false,
+      "indexCount": 0,
+      "attributes": [
+        "position",
+        "normal",
+        "uv",
+        "color"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "44845606-55de-40ff-a554-b1d523df23ff",
+      "name": "(unnamed)",
+      "bytes": 903936,
+      "verts": 20544,
+      "indexed": false,
+      "indexCount": 0,
+      "attributes": [
+        "position",
+        "normal",
+        "uv",
+        "color"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "7d216fd3-f0c9-48e4-bcfc-ead1f6e1fcf8",
+      "name": "(unnamed)",
+      "bytes": 525360,
+      "verts": 11940,
+      "indexed": false,
+      "indexCount": 0,
+      "attributes": [
+        "position",
+        "normal",
+        "uv",
+        "color"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "38ad400c-dc3d-4a80-bbcf-6ad89ffa3caa",
+      "name": "(unnamed)",
+      "bytes": 449316,
+      "verts": 9409,
+      "indexed": true,
+      "indexCount": 55296,
+      "attributes": [
+        "position",
+        "normal",
+        "uv",
+        "aWaterY"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "805a5450-1d13-402e-abb9-a01d2b2c7f5e",
+      "name": "(unnamed)",
+      "bytes": 342144,
+      "verts": 7776,
+      "indexed": false,
+      "indexCount": 0,
+      "attributes": [
+        "position",
+        "normal",
+        "uv",
+        "color"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "f51a0b10-ac48-49d0-9607-f944d793b416",
+      "name": "(unnamed)",
+      "bytes": 317328,
+      "verts": 7212,
+      "indexed": false,
+      "indexCount": 0,
+      "attributes": [
+        "position",
+        "normal",
+        "uv",
+        "color"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "55b215c3-ed19-4ad0-8e87-3b4299592b77",
+      "name": "(unnamed)",
+      "bytes": 297792,
+      "verts": 6768,
+      "indexed": false,
+      "indexCount": 0,
+      "attributes": [
+        "position",
+        "normal",
+        "uv",
+        "color"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "beb78daa-84c1-4b52-8940-db07ba58d1f1",
+      "name": "(unnamed)",
+      "bytes": 187360,
+      "verts": 4505,
+      "indexed": true,
+      "indexCount": 21600,
+      "attributes": [
+        "position",
+        "uv",
+        "normal"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    },
+    {
+      "uuid": "2886a9d3-ba37-441a-aa83-3871e37abd1d",
+      "name": "(unnamed)",
+      "bytes": 170496,
+      "verts": 5328,
+      "indexed": false,
+      "indexCount": 0,
+      "attributes": [
+        "position",
+        "normal",
+        "uv"
+      ],
+      "drawRange": {
+        "start": 0,
+        "count": null
+      }
+    }
+  ],
+  "topTextures": [
+    {
+      "uuid": "84372f1b-56f7-4efe-998f-cc157e8ed622",
+      "name": "(unnamed)",
+      "w": 1024,
+      "h": 1024,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "srgb",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1001,
+      "wrapT": 1001,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshBasicMaterial.map"
+      ],
+      "pixels": 1048576,
+      "bytes": 5592405
+    },
+    {
+      "uuid": "e0d76770-4bd8-4274-a869-1efbc79b3e2d",
+      "name": "(unnamed)",
+      "w": 512,
+      "h": 512,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "srgb",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1001,
+      "wrapT": 1001,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.map"
+      ],
+      "pixels": 262144,
+      "bytes": 1398101
+    },
+    {
+      "uuid": "0bdf9753-9d0e-4a25-8fa2-4f48a25c8573",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "srgb",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1000,
+      "wrapT": 1000,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.map"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "35d1c041-251e-42b8-977f-9eeb1af54446",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1000,
+      "wrapT": 1000,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.normalMap"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "f8624476-0c82-4c4f-9adc-c03c0028b9e2",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1000,
+      "wrapT": 1000,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.roughnessMap"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "56d2f282-f6cd-47a8-8be7-0249e4029034",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "srgb",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1000,
+      "wrapT": 1000,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.map"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "7b71d2e7-d3e7-44be-aaf0-109c4ffcbff3",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1000,
+      "wrapT": 1000,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.normalMap"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "69504c21-b52f-4306-949e-9a225b186077",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1000,
+      "wrapT": 1000,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.roughnessMap"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "1c6e3447-6006-4907-9005-64b2bfa4ef99",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "srgb",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1000,
+      "wrapT": 1000,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.map"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "793dbc34-c635-4c44-bd76-8ed2691df1a9",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1000,
+      "wrapT": 1000,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.normalMap"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "94e16c60-6e05-40f0-a532-afe622aadcad",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1000,
+      "wrapT": 1000,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.roughnessMap"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "c57a7eff-0e63-4108-8ec2-e863a35088a4",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "srgb",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1000,
+      "wrapT": 1000,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.map"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "3039f444-d86c-43dc-b3fd-924101b70d79",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1000,
+      "wrapT": 1000,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.normalMap"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "766c10a8-025d-4d50-95cd-8fec4049621d",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1000,
+      "wrapT": 1000,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.roughnessMap"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "7e6c259d-2c31-42ea-a105-a00ded713aaa",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "srgb",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1001,
+      "wrapT": 1001,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.map"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "1acec3cd-5545-4050-b632-6b9442d1a6f0",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "srgb",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1001,
+      "wrapT": 1001,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.map"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "c052f819-11c5-494a-9a0f-d950e3acc796",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "srgb",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1001,
+      "wrapT": 1001,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.map"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "e4681c18-926c-41a7-86c9-9dfdc023940f",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "srgb",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1001,
+      "wrapT": 1001,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.map"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "646d1ea0-4f53-4574-988c-2201cc1aa9e4",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "srgb",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1001,
+      "wrapT": 1001,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.map"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    },
+    {
+      "uuid": "f5ab8f1c-7975-4863-82fb-cf4b11f8eba2",
+      "name": "(unnamed)",
+      "w": 256,
+      "h": 256,
+      "format": 1023,
+      "type": 1009,
+      "colorSpace": "srgb",
+      "anisotropy": 8,
+      "generateMipmaps": true,
+      "minFilter": 1008,
+      "magFilter": 1006,
+      "wrapS": 1001,
+      "wrapT": 1001,
+      "isDataTexture": false,
+      "isCanvasTexture": true,
+      "isCompressed": false,
+      "uses": [
+        "MeshStandardMaterial.map"
+      ],
+      "pixels": 65536,
+      "bytes": 349525
+    }
+  ],
+  "texturesWithoutMipmaps": 0,
+  "texturesAnisoZero": 0,
+  "driver": [
+    {
+      "note": "scene-root children",
+      "count": 8,
+      "names": [
+        "world",
+        "sky",
+        "DirectionalLight",
+        "Object3D",
+        "DirectionalLight",
+        "Object3D",
+        "HemisphereLight",
+        "AmbientLight"
+      ]
+    }
+  ]
+}

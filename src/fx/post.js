@@ -65,9 +65,9 @@ const GradeShader = {
     uVignette: { value: 1.0 },
     uGrain: { value: 0.6 },
     uCA: { value: 0.35 },
-    uSaturation: { value: 1.02 },
-    uContrast: { value: 1.05 },
-    uLift: { value: 0.0 },
+    uSaturation: { value: 1.12 },
+    uContrast: { value: 1.09 },
+    uLift: { value: 0.012 },
     uDofAmount: { value: 0.0 },
     uFocusDist: { value: 12.0 },
     uAperture: { value: 0.35 },
@@ -136,18 +136,19 @@ const GradeShader = {
       col = (col - 0.5) * uContrast + 0.5;
       float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
       // teal shadows / warm highlights
-      vec3 shadowTint = vec3(0.94, 1.015, 1.045);
-      vec3 highTint = vec3(1.035, 1.005, 0.965);
-      vec3 tint = mix(shadowTint, highTint, smoothstep(0.15, 0.85, luma));
+      vec3 shadowTint = vec3(0.90, 1.015, 1.075);
+      vec3 highTint = vec3(1.055, 1.005, 0.945);
+      vec3 tint = mix(shadowTint, highTint, smoothstep(0.10, 0.88, luma));
       col *= tint;
-      // gentle film curve
-      col = col / (1.0 + max(col - 1.0, 0.0) * 0.22);
-      col = mix(vec3(luma), col, uSaturation);
+      // gentle film curve: rolls off the highlights, keeps the toe slightly
+      // lifted so blacks stay filmic instead of crushed
+      col = col / (1.0 + max(col - 1.0, 0.0) * 0.26);
       col += uLift * (1.0 - luma);
+      col = mix(vec3(luma), col, uSaturation);
 
       // vignette
       float vig = smoothstep(0.95, 0.22, length(d) * 1.28);
-      col *= mix(1.0, vig, uVignette * 0.62);
+      col *= mix(1.0, vig, uVignette * 0.70);
 
       // film grain
       if (uGrain > 0.001) {
@@ -168,11 +169,16 @@ export function createPost(engine, ctx) {
   const layout = ctx.layout;
   const preset = engine.preset;
 
-  const size = new THREE.Vector2();
-  renderer.getDrawingBufferSize(size);
+  // The composer sizes itself from the renderer's logical size × pixel ratio,
+  // so these are the two numbers everything else has to agree on.
+  const bufferSize = new THREE.Vector2();
+  renderer.getDrawingBufferSize(bufferSize);
+  const logicalSize = new THREE.Vector2(
+    Math.max(2, Math.round(bufferSize.x / (renderer.getPixelRatio() || 1))),
+    Math.max(2, Math.round(bufferSize.y / (renderer.getPixelRatio() || 1))),
+  );
 
   const composer = new EffectComposer(renderer);
-  composer.setSize(size.x, size.y);
 
   const renderPass = new RenderPass(scene, camera);
   composer.addPass(renderPass);
@@ -183,7 +189,7 @@ export function createPost(engine, ctx) {
 
   let bloomPass = null;
   if (preset.bloom) {
-    bloomPass = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), preset.bloomStrength ?? 0.4, 0.55, 0.86);
+    bloomPass = new UnrealBloomPass(new THREE.Vector2(logicalSize.x, logicalSize.y), preset.bloomStrength ?? 0.4, 0.55, 0.86);
     composer.addPass(bloomPass);
   }
 
@@ -200,19 +206,59 @@ export function createPost(engine, ctx) {
 
   let smaaPass = null;
   if (preset.smaa) {
-    smaaPass = new SMAAPass(size.x, size.y);
+    smaaPass = new SMAAPass();
     composer.addPass(smaaPass);
   }
 
   // half-res depth prepass target (photo mode DOF only)
-  const depthRT = new THREE.WebGLRenderTarget(Math.max(2, size.x >> 1), Math.max(2, size.y >> 1), {
+  const depthRT = new THREE.WebGLRenderTarget(Math.max(2, bufferSize.x >> 1), Math.max(2, bufferSize.y >> 1), {
     depthBuffer: true,
     stencilBuffer: false,
-    depthTexture: new THREE.DepthTexture(Math.max(2, size.x >> 1), Math.max(2, size.y >> 1)),
+    depthTexture: new THREE.DepthTexture(Math.max(2, bufferSize.x >> 1), Math.max(2, bufferSize.y >> 1)),
   });
   depthRT.depthTexture.type = THREE.UnsignedIntType;
   depthRT.depthTexture.format = THREE.DepthFormat;
   gradePass.uniforms.tDepth.value = depthRT.depthTexture;
+  gradePass.uniforms.uResolution.value.set(bufferSize.x, bufferSize.y);
+
+  // Pass handles that were created lazily later still have to be reachable
+  // through `post.passes` (tests + tools read them).
+  const passes = { renderPass, godPass, bloomPass, gradePass, outputPass, smaaPass };
+
+  /** Re-align the depth target + shader resolution with the real buffer. */
+  function syncBufferSize() {
+    renderer.getDrawingBufferSize(bufferSize);
+    const bw = Math.max(2, Math.round(bufferSize.x));
+    const bh = Math.max(2, Math.round(bufferSize.y));
+    depthRT.setSize(Math.max(2, bw >> 1), Math.max(2, bh >> 1));
+    gradePass.uniforms.uResolution.value.set(bw, bh);
+  }
+
+  /**
+   * Bloom/SMAA are quality-gated, but a player may start at "low" and switch
+   * up at runtime - so the pass has to be buildable at any moment, not only
+   * during boot.
+   */
+  function ensureBloomPass() {
+    if (bloomPass) return bloomPass;
+    bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(logicalSize.x, logicalSize.y),
+      engine.preset.bloomStrength ?? 0.4, 0.55, 0.86,
+    );
+    const gradeIndex = composer.passes.indexOf(gradePass);
+    composer.insertPass(bloomPass, gradeIndex < 0 ? composer.passes.length : gradeIndex);
+    passes.bloomPass = bloomPass;
+    return bloomPass;
+  }
+
+  function ensureSmaaPass() {
+    if (smaaPass) return smaaPass;
+    smaaPass = new SMAAPass();
+    const outputIndex = composer.passes.indexOf(outputPass);
+    composer.insertPass(smaaPass, outputIndex < 0 ? composer.passes.length : outputIndex + 1);
+    passes.smaaPass = smaaPass;
+    return smaaPass;
+  }
 
   const photo = {
     active: false,
@@ -295,7 +341,7 @@ export function createPost(engine, ctx) {
 
   return {
     composer,
-    passes: { renderPass, godPass, bloomPass, gradePass, outputPass, smaaPass },
+    passes,
     render,
     setMode(name) {
       photo.active = name === 'photo';
@@ -308,21 +354,46 @@ export function createPost(engine, ctx) {
     },
     setFade(v) { gradePass.uniforms.uFade.value = clamp01(v); },
     setSize(w, h) {
-      composer.setSize(w, h);
-      if (bloomPass) bloomPass.setSize(w, h);
-      if (smaaPass) smaaPass.setSize(w, h);
-      depthRT.setSize(Math.max(2, w >> 1), Math.max(2, h >> 1));
-      gradePass.uniforms.uResolution.value.set(w, h);
+      logicalSize.set(Math.max(2, Math.round(w)), Math.max(2, Math.round(h)));
+      // composer.setSize() also resizes every pass (including lazily added
+      // bloom/SMAA) with the pixel-ratio-scaled dimensions.
+      composer.setSize(logicalSize.x, logicalSize.y);
+      syncBufferSize();
+    },
+    setPixelRatio(r) {
+      if (typeof r !== 'number' || !isFinite(r) || r <= 0) return;
+      composer.setPixelRatio(r);
+      syncBufferSize();
     },
     setQuality(level) {
       const p = engine.preset;
-      if (godPass) godPass.enabled = !!p.godrays;
+      godPass.enabled = !!p.godrays;
       gradePass.uniforms.uGrain.value = p.grain ? 0.6 : 0.0;
       gradePass.uniforms.uCA.value = p.chromatic ? 0.35 : 0.0;
       gradePass.uniforms.uVignette.value = p.vignette ? 1.0 : 0.0;
-      if (smaaPass) smaaPass.enabled = !!p.smaa;
-      if (bloomPass) bloomPass.enabled = !!p.bloom;
+      if (p.bloom) {
+        const bp = ensureBloomPass();
+        bp.enabled = true;
+        bp.strength = p.bloomStrength ?? 0.4;
+      } else if (bloomPass) {
+        bloomPass.enabled = false;
+      }
+      if (p.smaa) {
+        ensureSmaaPass().enabled = true;
+      } else if (smaaPass) {
+        smaaPass.enabled = false;
+      }
       void level;
+    },
+    /**
+     * Called by main.js after a WebGL context restore: three re-creates its GL
+     * objects lazily, so the chain only needs to be re-provisioned at the
+     * current buffer size and its per-frame timers reset.
+     */
+    handleContextRestored() {
+      composer.setSize(logicalSize.x, logicalSize.y);
+      syncBufferSize();
+      visTimer = 0;
     },
   };
 }

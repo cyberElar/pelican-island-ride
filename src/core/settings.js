@@ -14,6 +14,16 @@ export const GAME = {
 
 export const QUALITY_ORDER = ['low', 'medium', 'high', 'ultra'];
 
+/**
+ * Hard ceiling for the drawing buffer: width * height * pixelRatio² of the
+ * renderer (and therefore of every composer render target) may not exceed
+ * this. It is set just above native 4K (3840x2160 = 8.29 MP) so a 4K monitor
+ * at 100% scaling still renders pixel-for-pixel, while 4K at 200% scaling
+ * (33 MP) or an 8K panel is clamped instead of asking for framebuffers that
+ * reliably crash mid-range GPUs - and the tab.
+ */
+export const PIXEL_BUDGET = 8.4e6;
+
 export const QUALITY_PRESETS = {
   low: {
     label: '流畅',
@@ -105,7 +115,7 @@ export const QUALITY_PRESETS = {
   ultra: {
     label: '极致',
     renderScale: 1.0,
-    pixelRatioCap: 2.0,
+    pixelRatioCap: 1.5,
     shadows: true,
     shadowMapSize: 4096,
     softShadows: true,
@@ -141,7 +151,11 @@ export function detectQuality() {
     if (mobile) return 'medium';
     const cores = nav.hardwareConcurrency || 4;
     const mem = nav.deviceMemory || 8;
-    if (cores <= 4 || mem <= 4) return 'medium';
+    // Big windows (4K/8K panels) get one step down: the pixel budget in
+    // engine.js already clamps DPR, this just avoids starting too ambitious.
+    const pixels = (window.innerWidth || 0) * (window.innerHeight || 0);
+    if (cores <= 4 || mem <= 4) return pixels > 8e6 ? 'low' : 'medium';
+    if (pixels > 8e6) return 'medium';
     return 'high';
   } catch {
     return 'high';

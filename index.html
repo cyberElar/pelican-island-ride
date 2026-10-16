@@ -2,7 +2,11 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <!-- viewport-fit=cover so the HUD can use env(safe-area-inset-*) around the
+       notch; pinch-zoom is deliberately left enabled (WCAG 1.4.4). -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1420" />
+  <meta name="color-scheme" content="dark" />
   <title>提鹅鹏 · 单车环岛 | Pelican Island Ride</title>
   <meta name="description" content="一只鹈鹕骑着单车环游一座电影感十足的 3D 小岛（three.js 程序化生成）" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='24' font-size='24'%3E%F0%9F%A6%85%3C/text%3E%3C/svg%3E" />
@@ -13,11 +17,11 @@
   <div id="ui-root"></div>
 
   <!-- Boot overlay lives outside the module system so failures are visible -->
-  <div id="boot-overlay">
+  <div id="boot-overlay" role="status" aria-live="polite" aria-busy="true">
     <div class="boot-card">
       <div class="boot-title">提鹅鹏 · 单车环岛</div>
       <div class="boot-sub">A Pelican&rsquo;s Island Ride</div>
-      <div class="boot-track"><div id="boot-bar"></div></div>
+      <div class="boot-track" id="boot-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="加载进度 LOADING"><div id="boot-bar"></div></div>
       <div id="boot-label">正在生成小岛…</div>
       <div class="boot-hint">首次进入需要几秒钟生成地形、植被与建筑</div>
     </div>
@@ -38,9 +42,87 @@
     .boot-sub { margin-top: 10px; font-size: 12px; letter-spacing: 0.42em; opacity: 0.62; text-transform: uppercase; }
     .boot-track { margin: 28px auto 12px; width: min(360px, 70vw); height: 3px; background: rgba(242,232,213,0.18); overflow: hidden; }
     #boot-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #e8b64c, #f2e8d5); transition: width 260ms ease; }
-    #boot-label { font-size: 13px; letter-spacing: 0.24em; opacity: 0.86; min-height: 1.4em; }
-    .boot-hint { margin-top: 26px; font-size: 11px; letter-spacing: 0.16em; opacity: 0.42; }
+    #boot-label { font-size: 13px; letter-spacing: 0.24em; opacity: 0.92; min-height: 1.4em; }
+    .boot-hint { margin-top: 26px; font-size: 11.5px; letter-spacing: 0.16em; opacity: 0.62; }
+    .boot-track { touch-action: manipulation; }
   </style>
+
+  <script>
+    /* Boot-time error surface. Loaded before game.js so that even a bundle
+       parse error or a first-frame throw becomes readable text instead of a
+       silent black screen. Once the overlay has faded out, errors go to a
+       thin non-blocking strip instead. */
+    (function () {
+      var state = (window.__pelican = window.__pelican || {});
+      state.errors = state.errors || [];
+
+      function show(message) {
+        var overlay = document.getElementById('boot-overlay');
+        var label = document.getElementById('boot-label');
+        if (overlay && !overlay.classList.contains('is-done')) {
+          if (label) label.textContent = message;
+          return;
+        }
+        var bar = document.getElementById('pi-error-bar');
+        if (!bar) {
+          bar = document.createElement('div');
+          bar.id = 'pi-error-bar';
+          bar.setAttribute('role', 'alert');
+          bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:2000;padding:8px 14px;' +
+            'background:rgba(122,28,28,0.92);color:#ffe9d6;font:12px/1.6 ui-monospace,Consolas,monospace;' +
+            'text-align:center;white-space:pre-wrap;word-break:break-word;';
+          document.body.appendChild(bar);
+        }
+        bar.textContent = String(message).slice(0, 500);
+      }
+
+      function describe(reason) {
+        if (!reason) return 'unknown error';
+        if (typeof reason === 'string') return reason;
+        return reason.message || reason.statusMessage || String(reason);
+      }
+
+      function report(kind, detail) {
+        var text = kind + ': ' + detail;
+        try { state.errors.push(text); } catch (err) { /* ignore */ }
+        show(text);
+      }
+
+      window.addEventListener('error', function (ev) {
+        var detail = describe(ev && (ev.error || ev.message));
+        if (detail === 'unknown error' && ev && ev.target && (ev.target.src || ev.target.href)) {
+          detail = '资源加载失败 ' + (ev.target.src || ev.target.href);
+        }
+        report('error', detail);
+      });
+      window.addEventListener('unhandledrejection', function (ev) {
+        report('unhandledrejection', describe(ev && ev.reason));
+      });
+
+      /* Mirror the boot bar width into the progressbar ARIA value so screen
+         readers can follow the loading progress (the HUD bar does the same
+         for its own veil). */
+      (function mirrorProgress() {
+        var track = document.getElementById('boot-track');
+        var bar = document.getElementById('boot-bar');
+        if (!track || !bar) return;
+        var sync = function () {
+          var pct = Math.round(parseFloat(bar.style.width || '0') || 0);
+          track.setAttribute('aria-valuenow', String(Math.max(0, Math.min(100, pct))));
+        };
+        sync();
+        try {
+          if (typeof MutationObserver === 'function') {
+            new MutationObserver(sync).observe(bar, { attributes: true, attributeFilter: ['style'] });
+          } else {
+            setInterval(sync, 400);
+          }
+        } catch (err) {
+          setInterval(sync, 400);
+        }
+      })();
+    })();
+  </script>
 
   <script src="game.js"></script>
 </body>

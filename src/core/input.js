@@ -40,23 +40,53 @@ export function createInput(canvas) {
   let enabled = true;
   let dragging = false;
 
+  /**
+   * Hard reset of every input state. Used by disable/blur/gamepad loss so no
+   * action (brakeHard from a gamepad, a stale touch axis, ...) can stay stuck.
+   */
+  function resetAll() {
+    held.clear();
+    pressedSet.clear();
+    touchHeld.clear();
+    touchAxes.steer = 0;
+    touchAxes.throttle = 0;
+    touchAxes.brake = 0;
+    axes.steer = 0;
+    axes.throttle = 0;
+    axes.brake = 0;
+    pointerDelta.dx = 0;
+    pointerDelta.dy = 0;
+    pointer.down = false;
+    pointer.dx = 0;
+    pointer.dy = 0;
+    dragging = false;
+  }
+
   function onKeyDown(e) {
+    // A menu (or any other handler) that already consumed the key wins.
+    if (e.defaultPrevented) return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
     const action = KEY_ACTIONS[e.code];
     if (action) {
       if (!held.has(action)) pressedSet.add(action);
       held.add(action);
-      if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
+      if (enabled && (e.code === 'Space' || e.code.startsWith('Arrow'))) e.preventDefault();
     }
   }
   function onKeyUp(e) {
     const action = KEY_ACTIONS[e.code];
     if (action) held.delete(action);
   }
-  function onBlur() { held.clear(); }
+  function onBlur() { resetAll(); }
+  // Losing or gaining a pad invalidates whatever the pad reported last frame.
+  function onGamepadChange() { resetAll(); }
 
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
   window.addEventListener('blur', onBlur);
+  window.addEventListener('gamepadconnected', onGamepadChange);
+  window.addEventListener('gamepaddisconnected', onGamepadChange);
 
   function onPointerMove(e) {
     const w = window.innerWidth, h = window.innerHeight;
@@ -80,7 +110,7 @@ export function createInput(canvas) {
     axes,
     pointer,
     get enabled() { return enabled; },
-    set enabled(v) { enabled = !!v; if (!v) { held.clear(); } },
+    set enabled(v) { enabled = !!v; if (!enabled) resetAll(); },
 
     held(action) { return enabled && held.has(action); },
     pressed(action) { return enabled && pressedSet.has(action); },
@@ -103,8 +133,10 @@ export function createInput(canvas) {
       // Gamepad
       try {
         const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+        let sawPad = false;
         for (const pad of pads) {
-          if (!pad) continue;
+          if (!pad || pad.connected === false) continue;
+          sawPad = true;
           const ax = pad.axes[0] || 0;
           if (Math.abs(ax) > 0.12) steer += ax;
           const rt = pad.buttons[7] ? pad.buttons[7].value : 0;
@@ -115,6 +147,9 @@ export function createInput(canvas) {
           else touchHeld.delete('brakeHard');
           break;
         }
+        // No usable pad this frame (unplugged / browser revoked access): the
+        // pad-driven hard brake must not stay latched forever.
+        if (!sawPad) touchHeld.delete('brakeHard');
       } catch { /* no gamepad support */ }
 
       steer += touchAxes.steer;
@@ -132,9 +167,12 @@ export function createInput(canvas) {
     },
 
     dispose() {
+      resetAll();
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
+      window.removeEventListener('gamepadconnected', onGamepadChange);
+      window.removeEventListener('gamepaddisconnected', onGamepadChange);
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointerup', onPointerUp);

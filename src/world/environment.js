@@ -115,7 +115,12 @@ export function createEnvironment(ctx) {
     const weatherBoost = (state?.weather?.fogBoost || 0) + (state?.weather?.rain || 0) * 0.5;
     const dawnBoost = 1 + 0.55 * Math.exp(-Math.pow((hour - 6.2) / 1.4, 2));
     scene.fog.color.copy(fogColor);
-    scene.fog.density = (preset.fogDensity || 0.00006) * dawnBoost * (1 + weatherBoost);
+    // Aerial perspective. The presets are tuned conservatively, which on a
+    // 6 km island left the far hills as saturated as the roadside: nothing read
+    // as "distant". Scaling here keeps the presets intact and gives the golden
+    // hour the warm haze it needs.
+    const AERIAL_PERSPECTIVE = 2.1;
+    scene.fog.density = (preset.fogDensity || 0.00006) * AERIAL_PERSPECTIVE * dawnBoost * (1 + weatherBoost);
 
     // exposure: slightly higher at night so the world stays readable
     const targetExposure = 1.02 + night * 0.34;

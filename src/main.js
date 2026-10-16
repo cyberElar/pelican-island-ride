@@ -14,9 +14,11 @@ import { createInput } from './core/input.js';
 import { createPost } from './fx/post.js';
 import { createHUD } from './ui/hud.js';
 import { createMenus } from './ui/menus.js';
+import { createTouchControls } from './ui/touch.js';
 import { worldModuleList } from './registry.js';
+import { DISCOVERABLE } from './gameplay/events.js';
 import { GAME, QUALITY_PRESETS, detectQuality } from './core/settings.js';
-import { Rng } from './core/utils.js';
+import { Rng, clamp01 } from './core/utils.js';
 
 /**
  * Yield to the browser so the boot progress bar can repaint. Falls back to a
@@ -37,10 +39,51 @@ const MODULE_LABELS = {
   collectibles: '藏好金色羽毛', events: '编写岛屿故事', audio: '谱曲与浪声',
 };
 
+/**
+ * Lightweight, dependency-free error strip. `index.html` ships the same
+ * element id for errors that happen before this module even loads.
+ */
+function showErrorBar(message) {
+  try {
+    if (typeof document === 'undefined' || !document.body) return;
+    let bar = document.getElementById('pi-error-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'pi-error-bar';
+      bar.setAttribute('role', 'alert');
+      bar.style.cssText = [
+        'position:fixed', 'left:0', 'right:0', 'top:0', 'z-index:2000',
+        'padding:8px 14px', 'background:rgba(122,28,28,0.92)', 'color:#ffe9d6',
+        'font:12px/1.6 ui-monospace,Consolas,monospace', 'text-align:center',
+        'pointer-events:none', 'white-space:pre-wrap', 'word-break:break-word',
+      ].join(';');
+      document.body.appendChild(bar);
+    }
+    bar.textContent = String(message).slice(0, 500);
+  } catch { /* the error reporter must never throw */ }
+}
+
 async function boot() {
-  window.__pelican = { ready: false, booting: true };
+  // Keep whatever the inline boot-time listeners already collected.
+  const priorPelican = window.__pelican || {};
+  window.__pelican = {
+    ...priorPelican,
+    ready: false,
+    booting: true,
+    moduleErrors: Array.isArray(priorPelican.moduleErrors) ? priorPelican.moduleErrors : [],
+  };
   const progress = { stage: 'boot', i: 0, total: 0, label: '' };
   window.__pelicanProgress = progress;
+
+  // Boot-stage stopwatch: printed once at the end and exposed on
+  // __pelican.bootStages so screenshot runs can report where time goes.
+  const bootStages = [];
+  let lastMark = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
+  const mark = (name) => {
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : lastMark;
+    bootStages.push({ name, ms: Math.round(now - lastMark) });
+    lastMark = now;
+  };
 
   const params = new URLSearchParams(location.search);
   const seedParam = params.get('seed');
@@ -63,6 +106,7 @@ async function boot() {
   const engine = createEngine(canvas, { quality });
   const textures = createTextureLibrary(quality, engine.renderer);
   const layout = createLayout(seed);
+  mark('setup');
   const bus = engine.bus;
   const input = createInput(canvas);
 
@@ -133,9 +177,13 @@ async function boot() {
     const n = s.length / 3;
     for (let i = 0; i < n; i += 5) minimapRoad.push({ x: s[i * 3], z: s[i * 3 + 2] });
   }
+  // The minimap and the HUD denominator use exactly the list events.js can
+  // actually discover (audit D2: 25 discoverable, not 28).
+  const discoverableIds = new Set(DISCOVERABLE.map(([id]) => id));
   const minimapPoiBase = Object.values(layout.pois)
-    .filter((p) => p.id !== 'forest' && p.id !== 'pineForest' && p.id !== 'beach' && p.id !== 'beachEast')
+    .filter((p) => discoverableIds.has(p.id))
     .map((p) => ({ id: p.id, name: p.name, x: p.position.x, z: p.position.z, type: p.type }));
+  state.discoverableTotal = minimapPoiBase.length;
   function minimapData() {
     return {
       heightTexture: ctx.heightTexture || null,
@@ -155,10 +203,15 @@ async function boot() {
     onResume,
     onSettingsChange,
     onQuitToTitle,
+    onResetProgress: resetGameplayProgress,
   });
 
   hud = createHUD(ctx, { container: uiRoot, minimapData });
   hud.setDiscoveredTotal?.(minimapPoiBase.length);
+
+  // Virtual pad for touch devices; it drives the same input API as the
+  // keyboard and stays hidden everywhere else.
+  const touch = createTouchControls(input, { container: uiRoot, bus, window, document });
 
   // -------------------------------------------------------- staged build
   const modules = {};
@@ -175,6 +228,7 @@ async function boot() {
     await nextFrame();
     try {
       const instance = entry.factory(ctx);
+      mark(entry.id);
       modules[entry.id] = instance;
       ctx[entry.id] = instance;
       if (instance && instance.group) {
@@ -186,8 +240,16 @@ async function boot() {
       if (instance?.heightTexture && !ctx.heightTexture) ctx.heightTexture = instance.heightTexture;
     } catch (err) {
       console.error(`[pelican] module "${entry.id}" failed to build`, err);
-      bus.emit('ui:toast', { title: '模块加载失败', sub: entry.id });
+      // The bus toast listener is not wired yet at this point, so report
+      // straight to the DOM (and to CI through window.__pelican).
+      window.__pelican.moduleErrors.push({ id: entry.id, message: String(err?.message || err) });
+      hud.toast?.('模块加载失败', entry.id);
     }
+  }
+
+  if (window.__pelican.moduleErrors.length) {
+    const failed = window.__pelican.moduleErrors.map((e) => e.id).join(', ');
+    showErrorBar(`模块加载失败: ${failed} — 详见控制台 · MODULE BUILD FAILED`);
   }
 
   // late wiring: props/landmarks emitters feed the particle system
@@ -211,11 +273,13 @@ async function boot() {
     const camp = layout.pois.camp?.position;
     if (camp) modules.particles.registerEmitter(camp.x, camp.y + 1.0, camp.z, 'fire', 1.0);
   }
+  mark('wiring');
 
   setProgress((totalSteps - 1) / totalSteps, '正在生成小岛 · 装配镜头后期');
   progress.stage = 'post';
   await nextFrame();
   const post = createPost(engine, ctx);
+  mark('post');
   ctx.post = post;
   const postRender = post.render.bind(post);
   post.render = (dt) => postRender(dt, state);
@@ -223,17 +287,17 @@ async function boot() {
 
   setProgress(1, '准备就绪');
   progress.stage = 'ready';
+  mark('ready');
+  console.log('[pelican] boot stages: ' + bootStages.map((s) => `${s.name}=${s.ms}ms`).join(' '));
 
   if (modules.controls?.spawn) modules.controls.spawn(state);
   engine.camera.position.copy(state.player.position).add(new THREE.Vector3(0, 40, -60));
   bus.emit('quality:changed', { level: quality });
 
   // ------------------------------------------------------------- helpers
-  const CAMERA_CYCLE = ['chase', 'firstPerson', 'cinematic'];
-  let cameraCycleIndex = 0;
-
+  // The camera module owns its mode machine; keeping a second index here used
+  // to desync after auto fly-bys and photo mode (audit D5).
   function setCamera(mode) {
-    cameraCycleIndex = Math.max(0, CAMERA_CYCLE.indexOf(mode));
     modules.camera?.setMode(mode);
   }
 
@@ -272,6 +336,7 @@ async function boot() {
 
   function onStart(mode) {
     state.started = true;
+    input.enabled = true; // quitting to title used to leave input locked (P0-3)
     menus.show('none');
     modules.audio?.init?.();
     if (mode === 'photo') {
@@ -294,23 +359,75 @@ async function boot() {
   function onQuitToTitle() {
     state.started = false;
     state.paused = false;
+    input.enabled = true;
     enterPhotoMode(false);
     modules.camera?.setMode('tour');
     menus.show('title');
   }
 
+  /** Settings > RESET PROGRESS: clear feathers and discoveries for this seed. */
+  function resetGameplayProgress() {
+    modules.events?.stopRace?.();
+    modules.collectibles?.resetProgress?.();
+    modules.events?.resetProgress?.();
+    hud.update?.(0, state);
+    hud.toast?.('探索进度已重置', 'Exploration progress reset');
+  }
+
   const SETTINGS_KEY = 'pelicanIsland.settings';
+  const SETTINGS_VERSION = 1;
+  const TIME_MODES = ['dawn', 'noon', 'sunset', 'night', 'cycle'];
+  const VOLUME_KEYS = ['masterVolume', 'musicVolume', 'sfxVolume'];
+
+  /**
+   * Field-by-field whitelist: anything unknown, mistyped or out of range is
+   * dropped instead of silently accepted (see audit P2-9).
+   */
+  function sanitizeSettings(raw) {
+    const out = {};
+    if (!raw || typeof raw !== 'object') return out;
+    if (typeof raw.quality === 'string' && QUALITY_PRESETS[raw.quality]) out.quality = raw.quality;
+    if (typeof raw.timeMode === 'string' && TIME_MODES.includes(raw.timeMode)) out.timeMode = raw.timeMode;
+    if (raw.language === 'zh' || raw.language === 'en') out.language = raw.language;
+    for (const key of VOLUME_KEYS) {
+      const v = raw[key];
+      if (typeof v === 'number' && isFinite(v)) out[key] = clamp01(v);
+    }
+    if (typeof raw.muted === 'boolean') out.muted = raw.muted;
+    // Comfort / accessibility switches: without these the menu forgets every
+    // toggle on reload (mobile a11y report, section 3).
+    const SHAKE_LEVELS = ['off', 'low', 'medium', 'high'];
+    if (typeof raw.shakeIntensity === 'string' && SHAKE_LEVELS.includes(raw.shakeIntensity)) out.shakeIntensity = raw.shakeIntensity;
+    if (typeof raw.comfortFov === 'boolean') out.comfortFov = raw.comfortFov;
+    if (typeof raw.reduceMotion === 'boolean') out.reduceMotion = raw.reduceMotion;
+    if (typeof raw.autoCinematic === 'boolean') out.autoCinematic = raw.autoCinematic;
+    if (typeof raw.captions === 'boolean') out.captions = raw.captions;
+    if (typeof raw.uiScale === 'number' && isFinite(raw.uiScale)) {
+      out.uiScale = Math.max(0.85, Math.min(1.35, raw.uiScale));
+    }
+    return out;
+  }
+
   function loadSettings() {
     try {
       const raw = localStorage.getItem(SETTINGS_KEY);
-      if (raw) return JSON.parse(raw);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      // v1 stores { v, data }; the pre-v1 shape was a flat object.
+      const body = (parsed.v === SETTINGS_VERSION && parsed.data && typeof parsed.data === 'object')
+        ? parsed.data
+        : parsed;
+      const clean = sanitizeSettings(body);
+      return Object.keys(clean).length ? clean : null;
     } catch { /* ignore */ }
     return null;
   }
   function saveSettings(patch) {
     try {
       const cur = loadSettings() || {};
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...cur, ...patch }));
+      const data = sanitizeSettings({ ...cur, ...patch });
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ v: SETTINGS_VERSION, data }));
     } catch { /* ignore */ }
   }
 
@@ -330,17 +447,29 @@ async function boot() {
       modules.audio?.setMuted?.(patch.muted);
     }
     if (patch.timeMode) applyTimeMode(patch.timeMode);
+    // Motion comfort reaches the camera directly as well (menus also
+    // broadcasts `settings:changed`, which camera.js listens to).
+    if (patch.shakeIntensity !== undefined || patch.comfortFov !== undefined
+      || patch.reduceMotion !== undefined || patch.autoCinematic !== undefined) {
+      modules.camera?.applyMotionSettings?.(patch);
+    }
     saveSettings(patch);
   }
 
-  // restore saved settings
+  // restore saved settings and mirror them into the menu UI
   {
     const saved = loadSettings();
     if (saved) {
-      if (saved.quality && QUALITY_PRESETS[saved.quality] && !qParam) {
-        onSettingsChange({ quality: saved.quality });
+      if (saved.quality && !qParam) {
+        state.quality = saved.quality;
+        engine.setQuality(saved.quality);
+        post.setQuality(saved.quality);
+        for (const m of Object.values(modules)) m?.setQuality?.(saved.quality);
       }
-      if (saved.timeMode) applyTimeMode(saved.timeMode);
+      if (saved.timeMode) {
+        state._timePreset = saved.timeMode;
+        applyTimeMode(saved.timeMode);
+      }
       if (typeof saved.masterVolume === 'number') modules.audio?.setMasterVolume?.(saved.masterVolume);
       if (typeof saved.musicVolume === 'number') modules.audio?.setMusicVolume?.(saved.musicVolume);
       if (typeof saved.sfxVolume === 'number') modules.audio?.setSfxVolume?.(saved.sfxVolume);
@@ -348,6 +477,7 @@ async function boot() {
         state.muted = saved.muted;
         modules.audio?.setMuted?.(saved.muted);
       }
+      menus.setSettings?.(saved);
     }
   }
 
@@ -371,7 +501,127 @@ async function boot() {
   });
   bus.on('rider:crash', () => hud.flashDamage?.());
   bus.on('race:finish', (p) => {
-    hud.setRace?.({ checkpoint: 0, total: 8, time: p.time, best: p.best, finished: true, newRecord: p.record });
+    const total = state.race.total || 0;
+    hud.setRace?.({ checkpoint: total, total, time: p.time, best: p.best, finished: true, newRecord: p.record });
+  });
+  // "重置视角" in the settings menu emits this; the camera module's existing
+  // reset capability is snapping back to the chase rig.
+  bus.on('player:reset', () => {
+    if (!state.started || state.photoMode) return;
+    setCamera('chase');
+  });
+
+  // ------------------------------------------------ graphics context loss
+  const CONTEXT_LOST_TEXT = '图形上下文丢失，正在恢复…';
+  const CONTEXT_FAILED_TEXT = '图形上下文恢复失败，请刷新页面';
+  let contextWatchdog = 0;
+  let contextMsg = null;
+  let contextBtn = null;
+
+  function ensureContextOverlay() {
+    try {
+      if (typeof document === 'undefined' || !document.body) return null;
+      const existing = document.getElementById('pi-context-overlay');
+      if (existing) return existing;
+      const overlay = document.createElement('div');
+      overlay.id = 'pi-context-overlay';
+      overlay.style.cssText = [
+        'position:fixed', 'inset:0', 'z-index:1500', 'display:grid', 'place-items:center',
+        'background:rgba(7,10,18,0.88)', 'color:#f2e8d5', 'text-align:center', 'padding:24px',
+        'font-family:"Noto Serif SC","Source Han Serif SC","Songti SC",STSong,serif',
+      ].join(';');
+      const card = document.createElement('div');
+      contextMsg = document.createElement('div');
+      contextMsg.style.cssText = 'font-size:17px;letter-spacing:0.16em;line-height:1.8';
+      const sub = document.createElement('div');
+      sub.style.cssText = 'margin-top:12px;font-size:11px;letter-spacing:0.32em;opacity:0.55';
+      sub.textContent = 'GRAPHICS CONTEXT';
+      contextBtn = document.createElement('button');
+      contextBtn.type = 'button';
+      contextBtn.textContent = '刷新页面 · RELOAD';
+      contextBtn.style.cssText = [
+        'display:none', 'margin:22px auto 0', 'padding:10px 22px', 'cursor:pointer',
+        'border:1px solid rgba(242,232,213,0.45)', 'background:transparent', 'color:#f2e8d5',
+        'font-family:inherit', 'font-size:13px', 'letter-spacing:0.22em',
+      ].join(';');
+      contextBtn.addEventListener('click', () => { try { location.reload(); } catch { /* ignore */ } });
+      card.appendChild(contextMsg);
+      card.appendChild(sub);
+      card.appendChild(contextBtn);
+      overlay.appendChild(card);
+      document.body.appendChild(overlay);
+      return overlay;
+    } catch {
+      return null;
+    }
+  }
+
+  function showContextOverlay(message, canReload) {
+    const overlay = ensureContextOverlay();
+    if (!overlay) return;
+    if (contextMsg) contextMsg.textContent = message;
+    if (contextBtn) contextBtn.style.display = canReload ? 'block' : 'none';
+  }
+
+  function hideContextOverlay() {
+    try {
+      const overlay = document.getElementById('pi-context-overlay');
+      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    } catch { /* ignore */ }
+    contextMsg = null;
+    contextBtn = null;
+  }
+
+  bus.on('context:lost', () => {
+    // engine.js already stopped the frame loop; from here on it is about
+    // telling the player what is happening and watching for the restore.
+    showContextOverlay(CONTEXT_LOST_TEXT, false);
+    hud.toast?.('图形上下文丢失，正在恢复…', 'Graphics context lost');
+    if (contextWatchdog) clearTimeout(contextWatchdog);
+    contextWatchdog = setTimeout(() => {
+      contextWatchdog = 0;
+      showContextOverlay(CONTEXT_FAILED_TEXT, true);
+      hud.toast?.('恢复超时，请刷新页面', 'Please reload the page');
+    }, 8000);
+  });
+
+  bus.on('context:restored', () => {
+    if (contextWatchdog) {
+      clearTimeout(contextWatchdog);
+      contextWatchdog = 0;
+    }
+    hideContextOverlay();
+    // three rebuilds GL objects lazily; the post chain just has to be
+    // re-provisioned against the new context and the PMREM env refreshed.
+    try {
+      post.handleContextRestored?.();
+    } catch (err) {
+      console.error('[pelican] post restore failed', err);
+    }
+    try {
+      engine.applySize();
+    } catch (err) {
+      console.error('[pelican] size restore failed', err);
+    }
+    try {
+      modules.environment?.setHour?.(state.hour);
+    } catch { /* env rebuild is best-effort */ }
+    hud.toast?.('画面已恢复', 'Graphics restored');
+  });
+
+  // ------------------------------------------------- page visibility
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      // Hidden tab: stop rendering and silence the synth graph. Because the
+      // loop stops, game time (and therefore the time-trial clock) pauses.
+      engine.stop();
+      modules.audio?.suspend?.();
+    } else {
+      modules.audio?.resume?.();
+      // engine.start() resets the frame clock, so the first dt after being
+      // away is one normal frame instead of a multi-second spike.
+      if (!engine.contextLost) engine.start(loop);
+    }
   });
 
   // ------------------------------------------------------------- the loop
@@ -392,8 +642,7 @@ async function boot() {
     }
     if (!inMenu && !state.paused && !state.photoMode) {
       if (input.pressed('camera')) {
-        cameraCycleIndex = (cameraCycleIndex + 1) % CAMERA_CYCLE.length;
-        modules.camera?.setMode(CAMERA_CYCLE[cameraCycleIndex]);
+        modules.camera?.cycleMode?.();
       }
       if (input.pressed('map')) hud.toggleMinimap?.();
       if (input.pressed('reset')) modules.controls?.reset?.(state);
@@ -402,6 +651,8 @@ async function boot() {
       if (input.pressed('mute')) {
         state.muted = !state.muted;
         modules.audio?.setMuted?.(state.muted);
+        saveSettings({ muted: state.muted });
+        menus.setSettings?.({ muted: state.muted });
         hud.toast?.(state.muted ? '已静音' : '声音开启', state.muted ? 'Muted' : 'Sound on');
       }
       if (input.pressed('time')) {
@@ -419,39 +670,67 @@ async function boot() {
   }
 
   function loop(dt) {
-    state.dt = dt;
-    state.t += dt;
-    input.update();
-    handleActions();
+    try {
+      state.dt = dt;
+      state.t += dt;
+      input.update();
+      handleActions();
 
-    const frozen = state.paused;
-    const worldFrozen = state.photoMode || frozen;
-    state.timeScale = (state.autoAdvanceTime && !worldFrozen) ? 1 : 0;
+      const inMenu = menus.current !== 'none' && menus.current !== undefined;
+      const frozen = state.paused;
+      const worldFrozen = state.photoMode || frozen;
+      // Title screen / menus / pre-start: the world stays alive but the rider
+      // must not react to keys that are meant for menu navigation.
+      const gameplayFrozen = inMenu || !state.started;
+      state.timeScale = (state.autoAdvanceTime && !worldFrozen) ? 1 : 0;
 
-    if (!frozen) {
-      for (const id of ORDER) {
-        if (!modules[id]?.update) continue;
-        if (worldFrozen && (id === 'controls' || id === 'rider' || id === 'events' || id === 'collectibles')) continue;
-        try {
-          modules[id].update(dt, state);
-        } catch (err) {
-          console.error(`[pelican] update failed in "${id}"`, err);
+      const heading = state.player.heading;
+      state.compassHeading = Number.isFinite(heading) ? ((heading * 180 / Math.PI) % 360 + 360) % 360 : 0;
+
+      if (!frozen) {
+        for (const id of ORDER) {
+          if (!modules[id]?.update) continue;
+          if (gameplayFrozen && (id === 'controls' || id === 'events' || id === 'collectibles')) continue;
+          if (worldFrozen && (id === 'controls' || id === 'rider' || id === 'events' || id === 'collectibles')) continue;
+          try {
+            modules[id].update(dt, state);
+          } catch (err) {
+            console.error(`[pelican] update failed in "${id}"`, err);
+          }
         }
       }
-    } else {
-      modules.hud?.update?.(dt, state);
+
+      // The HUD is not a world module, so it never appeared in ORDER: it owns
+      // the speedometer, clock, compass and minimap and has to tick every
+      // frame, paused or not.
+      try {
+        hud.update?.(dt, state);
+      } catch (err) {
+        console.error('[pelican] hud update failed', err);
+      }
+
+      // Virtual pad: runs like the HUD even while paused so it can release
+      // its axes and hide; it decides internally when input is welcome.
+      try {
+        touch.update?.(dt, state);
+      } catch (err) {
+        console.error('[pelican] touch update failed', err);
+      }
+
+      // pedal input hint for audio
+      state.player.brake = input.axes.brake ?? 0;
+
+      // photo-mode focus follows the rider
+      if (state.photoMode && modules.camera) {
+        const focus = modules.camera.focusDistance ? modules.camera.focusDistance(state) : 12;
+        post.setPhoto({ focusDist: Math.max(1.2, focus) });
+      }
+    } catch (err) {
+      // A frame that fails must never leave the pressed-key set dirty.
+      console.error('[pelican] frame failed', err);
+    } finally {
+      input.endFrame();
     }
-
-    // pedal input hint for audio
-    state.player.brake = input.axes.brake;
-
-    // photo-mode focus follows the rider
-    if (state.photoMode && modules.camera) {
-      const focus = modules.camera.focusDistance ? modules.camera.focusDistance(state) : 12;
-      post.setPhoto({ focusDist: Math.max(1.2, focus) });
-    }
-
-    input.endFrame();
   }
 
   engine.start(loop);
@@ -460,12 +739,14 @@ async function boot() {
   window.__pelican = {
     version: '1.0.0',
     seed,
+    bootStages,
     engine,
     state,
     layout,
     modules,
     ctx,
     post,
+    touch,
     ready: true,
     start: (mode = 'ride') => onStart(mode),
     setHour: (h) => { state.autoAdvanceTime = false; state.hour = h; },
@@ -478,12 +759,18 @@ async function boot() {
     setCameraMode: (m) => modules.camera?.setMode?.(m),
     enterPhoto: (on) => enterPhotoMode(on),
     race: () => modules.events?.startRace?.(state),
+    resetProgress: () => resetGameplayProgress(),
   };
 }
 
 boot().catch((err) => {
   console.error('[pelican] boot failed', err);
+  const message = String(err?.message || err);
+  const overlay = document.getElementById('boot-overlay');
+  // Make sure the overlay is on screen again even if it had faded out.
+  if (overlay) overlay.classList.remove('is-done');
   const el = document.getElementById('boot-label');
-  if (el) el.textContent = `启动失败: ${err?.message || err}`;
-  window.__pelican = { ready: false, error: String(err?.stack || err) };
+  if (el) el.textContent = `启动失败: ${message} · 请刷新页面；若持续失败请确认浏览器支持 WebGL2`;
+  showErrorBar(`启动失败: ${message}`);
+  window.__pelican = { ...(window.__pelican || {}), ready: false, booting: false, error: String(err?.stack || err) };
 });

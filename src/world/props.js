@@ -867,23 +867,34 @@ export function createProps(ctx) {
     let slot = 0;
     // the market square owns this stretch of the street, keep houses out of it
     const inSquare = (idx, sd) => sd === 1 && Math.abs(idx - 152) <= 3;
-    for (let i = 118; i <= 176 && slot < 16; i++) {
-      const kind = HOUSE_KINDS[HOUSE_PLAN[slot % HOUSE_PLAN.length]];
-      const side = slot % 2 === 0 ? 1 : -1;
-      let spot = inSquare(i, side) ? null
-        : roadsideSpot(i, side, { w: kind.w, d: kind.d, levelWithRoad: 4.6, maxRise: 0.9, maxSlope: 0.45 });
-      if (!spot && !inSquare(i + 1, -side)) {
-        spot = roadsideSpot(i + 1, -side, { w: kind.w, d: kind.d, levelWithRoad: 4.6, maxRise: 0.9, maxSlope: 0.45 });
+    const fillSlots = (relax) => {
+      for (let i = 118; i <= 176 && slot < 16; i++) {
+        const kind = HOUSE_KINDS[HOUSE_PLAN[slot % HOUSE_PLAN.length]];
+        const side = slot % 2 === 0 ? 1 : -1;
+        const opts = {
+          w: kind.w, d: kind.d, levelWithRoad: relax.level,
+          maxRise: relax.rise, maxSlope: relax.slope,
+        };
+        if (relax.offsets) opts.offsets = relax.offsets;
+        let spot = inSquare(i, side) ? null : roadsideSpot(i, side, opts);
+        if (!spot && !inSquare(i + 1, -side)) spot = roadsideSpot(i + 1, -side, opts);
+        if (!spot) continue;
+        slot++;
+        const t = tint(0.1);
+        const frame = place(globalSink, spot.x, spot.y, spot.z, spot.ry, t,
+          (emit, f) => buildHouse(emit, f, kind, t));
+        addCollider(spot.x, spot.z, Math.max(kind.w, kind.d) * 0.5 + 0.6, 'building');
+        recordSample(spot.x, spot.y, spot.z);
+        houses.push({ frame, spot, kind, side: spot.side });
       }
-      if (!spot) continue;
-      slot++;
-      const t = tint(0.1);
-      const frame = place(globalSink, spot.x, spot.y, spot.z, spot.ry, t,
-        (emit, f) => buildHouse(emit, f, kind, t));
-      addCollider(spot.x, spot.z, Math.max(kind.w, kind.d) * 0.5 + 0.6, 'building');
-      recordSample(spot.x, spot.y, spot.z);
-      houses.push({ frame, spot, kind, side: spot.side });
-    }
+    };
+    // Seed safety (audit D10): the strict pass occasionally found only a
+    // couple of plots, leaving "Seabreeze Village" as a hamlet. Two relaxed
+    // passes keep the main street populated on every seed; houses that fit the
+    // strict rules still take the good plots first.
+    fillSlots({ rise: 0.9, slope: 0.45, level: 4.6 });
+    if (slot < 12) fillSlots({ rise: 1.3, slope: 0.55, level: 6.5, offsets: [10, 13, 16, 19, 23, 28, 34] });
+    if (slot < 12) fillSlots({ rise: 1.8, slope: 0.65, level: 8.0, offsets: [9, 12, 15, 18, 21, 25, 30, 36, 42] });
     stats.villageHouses = houses.length;
     // two church-adjacent cottages on the lane up to the chapel
     const chapel = layout.pois.chapel.position;

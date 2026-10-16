@@ -75,13 +75,63 @@ export function createCollectibles(ctx) {
     list.push({ x: spot.x, y: spot.y + 1.0, z: spot.z, collected: false, phase: rng.range(0, TAU) });
   }
 
+  // Validate once at construction, including colliders omitted by layout.isClear.
+  function reachable(x, z) {
+    if (layout.waterDepth(x, z) > 0.1 || layout.slopeAt(x, z) > 0.6) return false;
+    for (const c of ctx.colliders || []) {
+      if (c.active !== false && Math.hypot(x - c.x, z - c.z) < (c.r || 1) + 2.6) return false;
+    }
+    return true;
+  }
+  const candidate = {};
+  for (const f of list) {
+    if (reachable(f.x, f.z)) continue;
+    let found = false;
+    for (let i = 0; i < 4096; i++) {
+      layout.roadPoint(rng.float(), candidate);
+      const x = candidate.x - candidate.dirZ * 2.5;
+      const z = candidate.z + candidate.dirX * 2.5;
+      if (!reachable(x, z)) continue;
+      f.x = x; f.z = z; f.y = layout.heightAt(x, z) + 1;
+      found = true;
+      break;
+    }
+    if (!found) throw new Error('No reachable feather placement');
+  }
+  const progressKey = `pelicanIsland.feathers.${layout.seed}`;
+  try {
+    const saved = JSON.parse(localStorage.getItem(progressKey));
+    if (saved?.v === 1 && Array.isArray(saved.data?.indices)) {
+      for (const index of saved.data.indices) {
+        if (Number.isInteger(index) && index >= 0 && index < total) list[index].collected = true;
+      }
+    }
+  } catch { /* unavailable or corrupt storage */ }
+
   const _m = new THREE.Matrix4();
   const _q = new THREE.Quaternion();
   const _e = new THREE.Euler();
   const _s = new THREE.Vector3();
   const _p = new THREE.Vector3();
   let time = 0;
-  let collectedCount = 0;
+  let collectedCount = list.reduce((n, f) => n + Number(f.collected), 0);
+  let currentState = ctx.state;
+  let savePending = false;
+  const pickupEvent = { index: 0, total, collected: 0 };
+  const saveProgress = () => {
+    savePending = false;
+    const indices = [];
+    for (let i = 0; i < total; i++) if (list[i].collected) indices.push(i);
+    try { localStorage.setItem(progressKey, JSON.stringify({ v: 1, data: { indices } })); } catch { /* storage denied */ }
+  };
+  function resetProgress() {
+    for (const f of list) f.collected = false;
+    collectedCount = 0;
+    if (currentState) currentState.feathers.collected = 0;
+    for (let i = 0; i < total; i++) writeInstance(i);
+    mesh.instanceMatrix.needsUpdate = true;
+    saveProgress();
+  }
 
   function writeInstance(i) {
     const f = list[i];
@@ -112,18 +162,23 @@ export function createCollectibles(ctx) {
     total,
     update(dt, state) {
       time += dt;
+      currentState = state;
+      state.feathers.collected = collectedCount;
+      state.feathers.total = total;
       const player = state.player.position;
       for (let i = 0; i < total; i++) {
         const f = list[i];
         if (!f.collected) {
           _pv.set(f.x, f.y, f.z);
           const d = _pv.distanceTo(player);
-          if (d < 2.5) {
+          if (state.started && d < 2.5) {
             f.collected = true;
             collectedCount++;
             state.feathers.collected = collectedCount;
-            bus.emit('sfx', { name: 'pickup' });
-            bus.emit('feather:collected', { index: i, total, collected: collectedCount });
+            pickupEvent.index = i;
+            pickupEvent.collected = collectedCount;
+            bus.emit('feather:collected', pickupEvent);
+            if (!savePending) { savePending = true; queueMicrotask(saveProgress); }
             ctx.particles?.bursts?.sparkle?.(f.x, f.y, f.z, 14);
             dirty = true;
           }
@@ -137,9 +192,7 @@ export function createCollectibles(ctx) {
       void lerp;
     },
     list,
-    reset() {
-      for (const f of list) f.collected = false;
-      collectedCount = 0;
-    },
+    reset: resetProgress,
+    resetProgress,
   };
 }

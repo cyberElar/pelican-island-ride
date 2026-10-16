@@ -25,20 +25,20 @@ gravel shoulders, lamp posts, guard rails and distance markers; beaches, cliffs,
 alpine highlands, a lake with an islet, a river gorge crossed by a two-arch stone
 bridge, broadleaf forest, pine woods, meadows, farm terraces.
 
-**21 hand-built landmarks** — lighthouse (rotating beam at night), Seabreeze
-Village (16 houses, market square, fountain, laundry lines), fishing harbour with
+**20 hand-built landmarks** — lighthouse (rotating beam at night), Seabreeze
+Village (16 houses on most seeds, market square, fountain, laundry lines), fishing harbour with
 bobbing boats, windmill, watermill with turning wheel, standing stones, treehouse,
 watchtower ruins, sea arch and sea stacks, lake pavilion, hot-air balloons
 (tethered, drifting), summit observatory, chapel with graveyard, start/finish
 gates, shipwreck, waterfall, rope swing, cliff viewpoint.
 
-**Living island** — 234 creatures: seagulls, ducks, herons, rabbits, deer, crabs,
+**Living island** — 234 creatures at the high/ultra presets (163 on medium, 106 on low): seagulls, ducks, herons, rabbits, deer, crabs,
 butterflies, bees, fireflies at night, jumping fish, a whale offshore, dolphins in
 the bay. Six particle systems: pollen, falling leaves, chimney smoke, campfire
 embers, waterfall mist, sea spray.
 
 **Gameplay** — arcade bicycle physics (slope gravity, surface-dependent friction,
-lean, jumps, crashes), 40 hidden golden feathers, 28 discoverable landmarks with
+lean, jumps, crashes), 40 hidden golden feathers, 25 discoverable landmarks with
 letterboxed name cards, an 8-checkpoint ring-road time trial with a stored best
 lap, photo mode with depth of field, day/night cycle, weather, minimap,
 speedometer, compass.
@@ -71,8 +71,11 @@ of day and your speed.
 | `T` | time of day: dawn / noon / sunset / night / cycle |
 | `N` | mute · `Esc` pause |
 
-Gamepad: left stick steers, triggers pedal and brake. `?seed=1234` generates a
-different island, `?quality=low|medium|high|ultra` sets the preset manually.
+Gamepad: left stick steers, triggers pedal and brake. On touch screens a virtual
+pad appears — drag the left half to steer, hold the right pad to pedal, and the
+on-screen chips cover camera, map, photo, pause, bell, help and the time trial.
+`?seed=1234` generates a different island, `?quality=low|medium|high|ultra` sets
+the preset manually.
 
 ## Under the hood
 
@@ -82,11 +85,12 @@ different island, `?quality=low|medium|high|ultra` sets the preset manually.
   props, landmarks, animals, particles, weather, camera, controls, rider,
   collectibles, events, audio. Each one is a factory returning
   `{ group, update(dt, state), setQuality? }`.
-- 484 geometries, 195 procedural textures, ~75 shader programs, ~1 300–2 000
-  draw calls and 3–4.7 M triangles per frame at the *high* preset (shadows and
-  post-processing included).
-- Full island build takes ~4–11 s on a desktop CPU, then streams at interactive
-  frame rates; the loading screen reports progress.
+- 488 geometries, 195 procedural textures, ~75 shader programs; the composite
+  frame runs ≈660–790 draw calls and 2.8–5.1 M triangles at the *high* preset,
+  depending on where you are (shadows and post-processing included).
+- Full island build takes ~8–13 s at the *high* preset on a desktop CPU (the
+  dense vegetation scatter dominates), then streams at interactive frame rates;
+  the loading screen reports progress and the console logs per-stage timings.
 
 ## Development
 

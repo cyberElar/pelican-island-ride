@@ -1,0 +1,1380 @@
+{
+  "quality": "low",
+  "seed": "20261014",
+  "viewport": [
+    1280,
+    720
+  ],
+  "bootMs": 2494,
+  "gpuTimer": true,
+  "frames": 40,
+  "configs": [
+    {
+      "label": "baseline (full chain)",
+      "mode": "frame",
+      "raf": {
+        "n": 42,
+        "mean": 2.26,
+        "median": 1.6,
+        "p95": 4.5,
+        "min": 0.9,
+        "max": 16.9
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 1.969,
+        "renderSubmitMeanMs": 1.945,
+        "matrixWorldMeanMs": 0.157,
+        "modules": {
+          "controls": 0.043,
+          "rider": 0.057,
+          "events": 0.007,
+          "collectibles": 0.012,
+          "animals": 0.024,
+          "particles": 0.007,
+          "sky": 0.005,
+          "environment": 0.012,
+          "ocean": 0.031,
+          "vegetation": 0.01,
+          "props": 0.086,
+          "landmarks": 0.005,
+          "weather": 0,
+          "camera": 0.014,
+          "audio": 0.029
+        },
+        "moduleTotalMeanMs": 0.342
+      },
+      "info": {
+        "calls": 576,
+        "triangles": 1103750,
+        "points": 810,
+        "lines": 20,
+        "programs": 53,
+        "geometries": 384,
+        "textures": 143
+      }
+    },
+    {
+      "label": "per-pass gpu timing",
+      "mode": "passes",
+      "raf": {
+        "n": 41,
+        "mean": 2.18,
+        "median": 1.4,
+        "p95": 2.9,
+        "min": 0.9,
+        "max": 27.6
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 1.11,
+        "renderSubmitMeanMs": 1.078,
+        "matrixWorldMeanMs": 0.166,
+        "modules": {
+          "controls": 0.02,
+          "rider": 0.024,
+          "events": 0.002,
+          "collectibles": 0.002,
+          "animals": 0.012,
+          "particles": 0.017,
+          "sky": 0.002,
+          "environment": 0.007,
+          "ocean": 0.005,
+          "vegetation": 0.002,
+          "props": 0.01,
+          "landmarks": 0.002,
+          "weather": 0,
+          "camera": 0.024,
+          "audio": 0.041
+        },
+        "moduleTotalMeanMs": 0.17
+      },
+      "info": {
+        "calls": 570,
+        "triangles": 1106058,
+        "points": 2512,
+        "lines": 20,
+        "programs": 53,
+        "geometries": 386,
+        "textures": 145
+      }
+    },
+    {
+      "label": "renderPass only",
+      "mode": "frame",
+      "raf": {
+        "n": 50,
+        "mean": 3.28,
+        "median": 2.4,
+        "p95": 8,
+        "min": 0.3,
+        "max": 10.9
+      },
+      "gpu": {
+        "frame": {
+          "n": 21,
+          "mean": 4.62,
+          "median": 2.83,
+          "p95": 11.2,
+          "min": 2.46,
+          "max": 14.68
+        }
+      },
+      "cpu": {
+        "postSubmitMeanMs": 2.552,
+        "renderSubmitMeanMs": 2.538,
+        "matrixWorldMeanMs": 0.284,
+        "modules": {
+          "controls": 0.018,
+          "rider": 0.028,
+          "events": 0.01,
+          "collectibles": 0.01,
+          "animals": 0.03,
+          "particles": 0.018,
+          "sky": 0,
+          "environment": 0.012,
+          "ocean": 0.008,
+          "vegetation": 0,
+          "props": 0.034,
+          "landmarks": 0.008,
+          "weather": 0.004,
+          "camera": 0.022,
+          "audio": 0.042
+        },
+        "moduleTotalMeanMs": 0.244
+      },
+      "info": {
+        "calls": 562,
+        "triangles": 1105894,
+        "points": 2512,
+        "lines": 20,
+        "programs": 89,
+        "geometries": 386,
+        "textures": 145
+      }
+    },
+    {
+      "label": "renderPass + grade",
+      "mode": "frame",
+      "raf": {
+        "n": 42,
+        "mean": 3.95,
+        "median": 2.1,
+        "p95": 17,
+        "min": 0.9,
+        "max": 39.3
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 3.414,
+        "renderSubmitMeanMs": 3.388,
+        "matrixWorldMeanMs": 0.181,
+        "modules": {
+          "controls": 0.024,
+          "rider": 0.019,
+          "events": 0.002,
+          "collectibles": 0.014,
+          "animals": 0.024,
+          "particles": 0.017,
+          "sky": 0.002,
+          "environment": 0.014,
+          "ocean": 0.007,
+          "vegetation": 0.002,
+          "props": 0.014,
+          "landmarks": 0.007,
+          "weather": 0,
+          "camera": 0.014,
+          "audio": 0.048
+        },
+        "moduleTotalMeanMs": 0.208
+      },
+      "info": {
+        "calls": 560,
+        "triangles": 1106918,
+        "points": 2512,
+        "lines": 0,
+        "programs": 91,
+        "geometries": 386,
+        "textures": 145
+      }
+    },
+    {
+      "label": "renderPass + output",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 3.91,
+        "median": 1.6,
+        "p95": 10.1,
+        "min": 0.2,
+        "max": 44.1
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 3.746,
+        "renderSubmitMeanMs": 3.734,
+        "matrixWorldMeanMs": 0.195,
+        "modules": {
+          "controls": 0.024,
+          "rider": 0.012,
+          "events": 0.01,
+          "collectibles": 0.01,
+          "animals": 0.01,
+          "particles": 0.007,
+          "sky": 0,
+          "environment": 0.005,
+          "ocean": 0.01,
+          "vegetation": 0,
+          "props": 0.007,
+          "landmarks": 0.005,
+          "weather": 0,
+          "camera": 0.007,
+          "audio": 0.044
+        },
+        "moduleTotalMeanMs": 0.151
+      },
+      "info": {
+        "calls": 554,
+        "triangles": 1106678,
+        "points": 2512,
+        "lines": 0,
+        "programs": 91,
+        "geometries": 386,
+        "textures": 145
+      }
+    },
+    {
+      "label": "renderPass + bloom",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 3.97,
+        "median": 2,
+        "p95": 12.8,
+        "min": 0.8,
+        "max": 40.2
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 3.429,
+        "renderSubmitMeanMs": 3.415,
+        "matrixWorldMeanMs": 0.232,
+        "modules": {
+          "controls": 0.027,
+          "rider": 0.02,
+          "events": 0.007,
+          "collectibles": 0.01,
+          "animals": 0.027,
+          "particles": 0.017,
+          "sky": 0,
+          "environment": 0.007,
+          "ocean": 0.005,
+          "vegetation": 0.002,
+          "props": 0.024,
+          "landmarks": 0.005,
+          "weather": 0.005,
+          "camera": 0.007,
+          "audio": 0.037
+        },
+        "moduleTotalMeanMs": 0.2
+      },
+      "info": {
+        "calls": 550,
+        "triangles": 1106436,
+        "points": 2512,
+        "lines": 0,
+        "programs": 91,
+        "geometries": 386,
+        "textures": 145
+      }
+    },
+    {
+      "label": "renderPass + smaa",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 4.68,
+        "median": 3,
+        "p95": 11.9,
+        "min": 0.6,
+        "max": 16.6
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 3.476,
+        "renderSubmitMeanMs": 3.444,
+        "matrixWorldMeanMs": 0.3,
+        "modules": {
+          "controls": 0.051,
+          "rider": 0.054,
+          "events": 0.01,
+          "collectibles": 0.012,
+          "animals": 0.024,
+          "particles": 0.017,
+          "sky": 0,
+          "environment": 0.01,
+          "ocean": 0.007,
+          "vegetation": 0.002,
+          "props": 0.051,
+          "landmarks": 0.01,
+          "weather": 0.01,
+          "camera": 0.015,
+          "audio": 0.18
+        },
+        "moduleTotalMeanMs": 0.453
+      },
+      "info": {
+        "calls": 550,
+        "triangles": 1106436,
+        "points": 2512,
+        "lines": 0,
+        "programs": 91,
+        "geometries": 386,
+        "textures": 145
+      }
+    },
+    {
+      "label": "renderPass + godrays",
+      "mode": "frame",
+      "raf": {
+        "n": 43,
+        "mean": 3.43,
+        "median": 1.8,
+        "p95": 6.8,
+        "min": 0.9,
+        "max": 47.2
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 2.984,
+        "renderSubmitMeanMs": 2.942,
+        "matrixWorldMeanMs": 0.235,
+        "modules": {
+          "controls": 0.026,
+          "rider": 0.023,
+          "events": 0.005,
+          "collectibles": 0.009,
+          "animals": 0.019,
+          "particles": 0.009,
+          "sky": 0,
+          "environment": 0.002,
+          "ocean": 0.005,
+          "vegetation": 0.005,
+          "props": 0.007,
+          "landmarks": 0.007,
+          "weather": 0.007,
+          "camera": 0.002,
+          "audio": 0.035
+        },
+        "moduleTotalMeanMs": 0.161
+      },
+      "info": {
+        "calls": 552,
+        "triangles": 1106438,
+        "points": 2512,
+        "lines": 0,
+        "programs": 92,
+        "geometries": 386,
+        "textures": 145
+      }
+    },
+    {
+      "label": "no post at all",
+      "mode": "render",
+      "raf": {
+        "n": 41,
+        "mean": 4.38,
+        "median": 1.7,
+        "p95": 14.6,
+        "min": 0.9,
+        "max": 35.9
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 0,
+        "renderSubmitMeanMs": 3.966,
+        "matrixWorldMeanMs": 0.198,
+        "modules": {
+          "controls": 0.017,
+          "rider": 0.034,
+          "events": 0.005,
+          "collectibles": 0.005,
+          "animals": 0.015,
+          "particles": 0.01,
+          "sky": 0.005,
+          "environment": 0.012,
+          "ocean": 0.007,
+          "vegetation": 0.005,
+          "props": 0.015,
+          "landmarks": 0.007,
+          "weather": 0.005,
+          "camera": 0.002,
+          "audio": 0.039
+        },
+        "moduleTotalMeanMs": 0.183
+      },
+      "info": {
+        "calls": 552,
+        "triangles": 1106676,
+        "points": 2512,
+        "lines": 0,
+        "programs": 93,
+        "geometries": 386,
+        "textures": 145
+      }
+    },
+    {
+      "label": "half-res post chain",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 4.68,
+        "median": 1.8,
+        "p95": 13.8,
+        "min": 1.1,
+        "max": 54.7
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 4.224,
+        "renderSubmitMeanMs": 4.195,
+        "matrixWorldMeanMs": 0.198,
+        "modules": {
+          "controls": 0.029,
+          "rider": 0.029,
+          "events": 0.002,
+          "collectibles": 0.007,
+          "animals": 0.015,
+          "particles": 0.015,
+          "sky": 0.002,
+          "environment": 0.012,
+          "ocean": 0.002,
+          "vegetation": 0.002,
+          "props": 0.015,
+          "landmarks": 0.005,
+          "weather": 0.002,
+          "camera": 0.007,
+          "audio": 0.046
+        },
+        "moduleTotalMeanMs": 0.19
+      },
+      "info": {
+        "calls": 560,
+        "triangles": 1106730,
+        "points": 2512,
+        "lines": 0,
+        "programs": 93,
+        "geometries": 386,
+        "textures": 145
+      }
+    },
+    {
+      "label": "full-res restored",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 9.92,
+        "median": 2.2,
+        "p95": 51.8,
+        "min": 0.8,
+        "max": 90.9
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 8.702,
+        "renderSubmitMeanMs": 8.68,
+        "matrixWorldMeanMs": 0.283,
+        "modules": {
+          "controls": 0.02,
+          "rider": 0.024,
+          "events": 0.007,
+          "collectibles": 0.01,
+          "animals": 0.015,
+          "particles": 0.024,
+          "sky": 0,
+          "environment": 0.005,
+          "ocean": 0.005,
+          "vegetation": 0,
+          "props": 0.022,
+          "landmarks": 0.005,
+          "weather": 0.002,
+          "camera": 0.007,
+          "audio": 0.027
+        },
+        "moduleTotalMeanMs": 0.173
+      },
+      "info": {
+        "calls": 564,
+        "triangles": 1106922,
+        "points": 2512,
+        "lines": 0,
+        "programs": 93,
+        "geometries": 386,
+        "textures": 145
+      }
+    },
+    {
+      "label": "shadows off",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 11.02,
+        "median": 3.4,
+        "p95": 31.5,
+        "min": 0.9,
+        "max": 68.1
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 10.473,
+        "renderSubmitMeanMs": 10.456,
+        "matrixWorldMeanMs": 0.273,
+        "modules": {
+          "controls": 0.037,
+          "rider": 0.017,
+          "events": 0.01,
+          "collectibles": 0.005,
+          "animals": 0.034,
+          "particles": 0.007,
+          "sky": 0,
+          "environment": 0.015,
+          "ocean": 0.005,
+          "vegetation": 0,
+          "props": 0.02,
+          "landmarks": 0.007,
+          "weather": 0.01,
+          "camera": 0.012,
+          "audio": 0.054
+        },
+        "moduleTotalMeanMs": 0.233
+      },
+      "info": {
+        "calls": 564,
+        "triangles": 1106922,
+        "points": 2512,
+        "lines": 0,
+        "programs": 93,
+        "geometries": 386,
+        "textures": 145
+      }
+    },
+    {
+      "label": "shadows back on",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 9.67,
+        "median": 3.5,
+        "p95": 26.8,
+        "min": 1.4,
+        "max": 51.3
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 9.046,
+        "renderSubmitMeanMs": 9.022,
+        "matrixWorldMeanMs": 0.271,
+        "modules": {
+          "controls": 0.027,
+          "rider": 0.024,
+          "events": 0.002,
+          "collectibles": 0.007,
+          "animals": 0.022,
+          "particles": 0.02,
+          "sky": 0.005,
+          "environment": 0.007,
+          "ocean": 0.01,
+          "vegetation": 0.01,
+          "props": 0.015,
+          "landmarks": 0.005,
+          "weather": 0.005,
+          "camera": 0.01,
+          "audio": 0.051
+        },
+        "moduleTotalMeanMs": 0.22
+      },
+      "info": {
+        "calls": 564,
+        "triangles": 1106922,
+        "points": 2512,
+        "lines": 0,
+        "programs": 93,
+        "geometries": 386,
+        "textures": 145
+      }
+    },
+    {
+      "label": "hide:sky",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 6.73,
+        "median": 2.9,
+        "p95": 19.3,
+        "min": 1.1,
+        "max": 50
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 6.393,
+        "renderSubmitMeanMs": 6.361,
+        "matrixWorldMeanMs": 0.307,
+        "modules": {
+          "controls": 0.029,
+          "rider": 0.032,
+          "events": 0.005,
+          "collectibles": 0.005,
+          "animals": 0.039,
+          "particles": 0.01,
+          "sky": 0,
+          "environment": 0.005,
+          "ocean": 0.005,
+          "vegetation": 0.002,
+          "props": 0.022,
+          "landmarks": 0.01,
+          "weather": 0.007,
+          "camera": 0.012,
+          "audio": 0.039
+        },
+        "moduleTotalMeanMs": 0.222
+      },
+      "info": {
+        "calls": 562,
+        "triangles": 1103242,
+        "points": 2512,
+        "lines": 0,
+        "programs": 93,
+        "geometries": 386,
+        "textures": 145
+      },
+      "hiddenModule": "sky"
+    },
+    {
+      "label": "hide:terrain",
+      "mode": "frame",
+      "raf": {
+        "n": 42,
+        "mean": 6.6,
+        "median": 2.5,
+        "p95": 22.4,
+        "min": 1.1,
+        "max": 35.6
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 6.152,
+        "renderSubmitMeanMs": 6.112,
+        "matrixWorldMeanMs": 0.231,
+        "modules": {
+          "controls": 0.017,
+          "rider": 0.019,
+          "events": 0.014,
+          "collectibles": 0.012,
+          "animals": 0.014,
+          "particles": 0.01,
+          "sky": 0,
+          "environment": 0.01,
+          "ocean": 0.012,
+          "vegetation": 0.002,
+          "props": 0.019,
+          "landmarks": 0.005,
+          "weather": 0.007,
+          "camera": 0.012,
+          "audio": 0.024
+        },
+        "moduleTotalMeanMs": 0.177
+      },
+      "info": {
+        "calls": 556,
+        "triangles": 877418,
+        "points": 2512,
+        "lines": 0,
+        "programs": 93,
+        "geometries": 386,
+        "textures": 145
+      },
+      "hiddenModule": "terrain"
+    },
+    {
+      "label": "hide:ocean",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 9.04,
+        "median": 4,
+        "p95": 25.6,
+        "min": 1.3,
+        "max": 61.9
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 8.215,
+        "renderSubmitMeanMs": 8.188,
+        "matrixWorldMeanMs": 0.327,
+        "modules": {
+          "controls": 0.049,
+          "rider": 0.017,
+          "events": 0.005,
+          "collectibles": 0.002,
+          "animals": 0.032,
+          "particles": 0.012,
+          "sky": 0.002,
+          "environment": 0.012,
+          "ocean": 0.012,
+          "vegetation": 0,
+          "props": 0.022,
+          "landmarks": 0.007,
+          "weather": 0.01,
+          "camera": 0.02,
+          "audio": 0.037
+        },
+        "moduleTotalMeanMs": 0.239
+      },
+      "info": {
+        "calls": 560,
+        "triangles": 1068658,
+        "points": 2512,
+        "lines": 0,
+        "programs": 93,
+        "geometries": 386,
+        "textures": 145
+      },
+      "hiddenModule": "ocean"
+    },
+    {
+      "label": "hide:vegetation",
+      "mode": "frame",
+      "raf": {
+        "n": 42,
+        "mean": 2.92,
+        "median": 1,
+        "p95": 4.6,
+        "min": 0.6,
+        "max": 62.8
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 2.505,
+        "renderSubmitMeanMs": 2.486,
+        "matrixWorldMeanMs": 0.15,
+        "modules": {
+          "controls": 0.019,
+          "rider": 0.005,
+          "events": 0.005,
+          "collectibles": 0.005,
+          "animals": 0.017,
+          "particles": 0.012,
+          "sky": 0.002,
+          "environment": 0.002,
+          "ocean": 0.005,
+          "vegetation": 0,
+          "props": 0.012,
+          "landmarks": 0,
+          "weather": 0.002,
+          "camera": 0.005,
+          "audio": 0.021
+        },
+        "moduleTotalMeanMs": 0.112
+      },
+      "info": {
+        "calls": 426,
+        "triangles": 497134,
+        "points": 2512,
+        "lines": 0,
+        "programs": 93,
+        "geometries": 386,
+        "textures": 145
+      },
+      "hiddenModule": "vegetation"
+    },
+    {
+      "label": "hide:props",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 6.32,
+        "median": 2.5,
+        "p95": 19.2,
+        "min": 1,
+        "max": 49.2
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 5.666,
+        "renderSubmitMeanMs": 5.629,
+        "matrixWorldMeanMs": 0.254,
+        "modules": {
+          "controls": 0.044,
+          "rider": 0.015,
+          "events": 0.005,
+          "collectibles": 0.007,
+          "animals": 0.02,
+          "particles": 0.02,
+          "sky": 0,
+          "environment": 0.007,
+          "ocean": 0.005,
+          "vegetation": 0.005,
+          "props": 0.015,
+          "landmarks": 0.005,
+          "weather": 0,
+          "camera": 0.01,
+          "audio": 0.037
+        },
+        "moduleTotalMeanMs": 0.195
+      },
+      "info": {
+        "calls": 544,
+        "triangles": 961258,
+        "points": 2512,
+        "lines": 0,
+        "programs": 93,
+        "geometries": 386,
+        "textures": 145
+      },
+      "hiddenModule": "props"
+    },
+    {
+      "label": "hide:landmarks",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 6.51,
+        "median": 2.2,
+        "p95": 21.8,
+        "min": 0.8,
+        "max": 66.4
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 6.054,
+        "renderSubmitMeanMs": 6.022,
+        "matrixWorldMeanMs": 0.241,
+        "modules": {
+          "controls": 0.032,
+          "rider": 0.063,
+          "events": 0.015,
+          "collectibles": 0.01,
+          "animals": 0.012,
+          "particles": 0.012,
+          "sky": 0.002,
+          "environment": 0.005,
+          "ocean": 0.007,
+          "vegetation": 0,
+          "props": 0.007,
+          "landmarks": 0.002,
+          "weather": 0.005,
+          "camera": 0.007,
+          "audio": 0.029
+        },
+        "moduleTotalMeanMs": 0.208
+      },
+      "info": {
+        "calls": 323,
+        "triangles": 1075274,
+        "points": 2512,
+        "lines": 0,
+        "programs": 93,
+        "geometries": 386,
+        "textures": 145
+      },
+      "hiddenModule": "landmarks"
+    },
+    {
+      "label": "hide:animals",
+      "mode": "frame",
+      "raf": {
+        "n": 42,
+        "mean": 5.85,
+        "median": 1.6,
+        "p95": 6.9,
+        "min": 1,
+        "max": 149.1
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 4.981,
+        "renderSubmitMeanMs": 4.945,
+        "matrixWorldMeanMs": 0.195,
+        "modules": {
+          "controls": 0.021,
+          "rider": 0.019,
+          "events": 0.01,
+          "collectibles": 0,
+          "animals": 0.017,
+          "particles": 0.01,
+          "sky": 0.014,
+          "environment": 0.005,
+          "ocean": 0.005,
+          "vegetation": 0,
+          "props": 0.007,
+          "landmarks": 0.024,
+          "weather": 0.01,
+          "camera": 0.014,
+          "audio": 0.069
+        },
+        "moduleTotalMeanMs": 0.225
+      },
+      "info": {
+        "calls": 550,
+        "triangles": 1104738,
+        "points": 2512,
+        "lines": 0,
+        "programs": 94,
+        "geometries": 387,
+        "textures": 145
+      },
+      "hiddenModule": "animals"
+    },
+    {
+      "label": "hide:particles",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 4.99,
+        "median": 2.3,
+        "p95": 19.1,
+        "min": 0.8,
+        "max": 48
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 4.502,
+        "renderSubmitMeanMs": 4.48,
+        "matrixWorldMeanMs": 0.234,
+        "modules": {
+          "controls": 0.032,
+          "rider": 0.027,
+          "events": 0.002,
+          "collectibles": 0.005,
+          "animals": 0.022,
+          "particles": 0.017,
+          "sky": 0,
+          "environment": 0,
+          "ocean": 0.005,
+          "vegetation": 0.002,
+          "props": 0.015,
+          "landmarks": 0.002,
+          "weather": 0.007,
+          "camera": 0.012,
+          "audio": 0.034
+        },
+        "moduleTotalMeanMs": 0.182
+      },
+      "info": {
+        "calls": 604,
+        "triangles": 1228280,
+        "points": 0,
+        "lines": 20,
+        "programs": 94,
+        "geometries": 387,
+        "textures": 145
+      },
+      "hiddenModule": "particles"
+    },
+    {
+      "label": "hide:weather",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 3.43,
+        "median": 3,
+        "p95": 6.2,
+        "min": 0.8,
+        "max": 14.1
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 2.776,
+        "renderSubmitMeanMs": 2.744,
+        "matrixWorldMeanMs": 0.205,
+        "modules": {
+          "controls": 0.034,
+          "rider": 0.024,
+          "events": 0.007,
+          "collectibles": 0.01,
+          "animals": 0.017,
+          "particles": 0.012,
+          "sky": 0,
+          "environment": 0,
+          "ocean": 0.015,
+          "vegetation": 0.002,
+          "props": 0.005,
+          "landmarks": 0.005,
+          "weather": 0.012,
+          "camera": 0.005,
+          "audio": 0.037
+        },
+        "moduleTotalMeanMs": 0.185
+      },
+      "info": {
+        "calls": 622,
+        "triangles": 1285180,
+        "points": 2512,
+        "lines": 20,
+        "programs": 94,
+        "geometries": 387,
+        "textures": 145
+      },
+      "hiddenModule": "weather"
+    },
+    {
+      "label": "hide:rider",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 3.14,
+        "median": 1.3,
+        "p95": 9,
+        "min": 0.5,
+        "max": 11
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 2.729,
+        "renderSubmitMeanMs": 2.715,
+        "matrixWorldMeanMs": 0.176,
+        "modules": {
+          "controls": 0.022,
+          "rider": 0.012,
+          "events": 0.007,
+          "collectibles": 0.005,
+          "animals": 0.01,
+          "particles": 0.022,
+          "sky": 0.002,
+          "environment": 0,
+          "ocean": 0.002,
+          "vegetation": 0,
+          "props": 0.012,
+          "landmarks": 0.002,
+          "weather": 0.002,
+          "camera": 0,
+          "audio": 0.034
+        },
+        "moduleTotalMeanMs": 0.132
+      },
+      "info": {
+        "calls": 278,
+        "triangles": 1234984,
+        "points": 2512,
+        "lines": 20,
+        "programs": 94,
+        "geometries": 387,
+        "textures": 145
+      },
+      "hiddenModule": "rider"
+    },
+    {
+      "label": "hide:collectibles",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 3.28,
+        "median": 2,
+        "p95": 5.5,
+        "min": 0.8,
+        "max": 17.9
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 3.244,
+        "renderSubmitMeanMs": 3.224,
+        "matrixWorldMeanMs": 0.18,
+        "modules": {
+          "controls": 0.02,
+          "rider": 0.022,
+          "events": 0.002,
+          "collectibles": 0.01,
+          "animals": 0.005,
+          "particles": 0.015,
+          "sky": 0,
+          "environment": 0,
+          "ocean": 0.01,
+          "vegetation": 0,
+          "props": 0.007,
+          "landmarks": 0.012,
+          "weather": 0.005,
+          "camera": 0.007,
+          "audio": 0.037
+        },
+        "moduleTotalMeanMs": 0.152
+      },
+      "info": {
+        "calls": 622,
+        "triangles": 1283708,
+        "points": 2512,
+        "lines": 20,
+        "programs": 94,
+        "geometries": 387,
+        "textures": 145
+      },
+      "hiddenModule": "collectibles"
+    },
+    {
+      "label": "static matrix freeze",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 3.59,
+        "median": 2.3,
+        "p95": 7.1,
+        "min": 0.9,
+        "max": 12.3
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 3.134,
+        "renderSubmitMeanMs": 3.115,
+        "matrixWorldMeanMs": 0.115,
+        "modules": {
+          "controls": 0.02,
+          "rider": 0.012,
+          "events": 0.005,
+          "collectibles": 0.002,
+          "animals": 0.015,
+          "particles": 0.022,
+          "sky": 0.002,
+          "environment": 0.002,
+          "ocean": 0.002,
+          "vegetation": 0,
+          "props": 0.01,
+          "landmarks": 0.005,
+          "weather": 0.01,
+          "camera": 0.005,
+          "audio": 0.034
+        },
+        "moduleTotalMeanMs": 0.146
+      },
+      "info": {
+        "calls": 630,
+        "triangles": 1308896,
+        "points": 2512,
+        "lines": 20,
+        "programs": 94,
+        "geometries": 387,
+        "textures": 145
+      }
+    },
+    {
+      "label": "engine stopped (rAF floor)",
+      "mode": "off",
+      "raf": {
+        "n": 60,
+        "mean": 17.44,
+        "median": 17.4,
+        "p95": 18.4,
+        "min": 17,
+        "max": 18.6
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 0,
+        "renderSubmitMeanMs": 0,
+        "matrixWorldMeanMs": 0,
+        "modules": {},
+        "moduleTotalMeanMs": 0
+      },
+      "info": {
+        "calls": 0,
+        "triangles": 0,
+        "points": 0,
+        "lines": 0,
+        "programs": 95,
+        "geometries": 500,
+        "textures": 181
+      }
+    }
+  ],
+  "passCosts": [],
+  "viewScenarios": [
+    {
+      "label": "view: village road",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 3.46,
+        "median": 2.4,
+        "p95": 8,
+        "min": 0.9,
+        "max": 25.9
+      },
+      "gpu": {
+        "frame": {
+          "n": 5,
+          "mean": 4.54,
+          "median": 4.63,
+          "p95": 4.98,
+          "min": 4.15,
+          "max": 4.98
+        }
+      },
+      "cpu": {
+        "postSubmitMeanMs": 2.844,
+        "renderSubmitMeanMs": 2.824,
+        "matrixWorldMeanMs": 0.183,
+        "modules": {
+          "controls": 0.032,
+          "rider": 0.024,
+          "events": 0.002,
+          "collectibles": 0.007,
+          "animals": 0.007,
+          "particles": 0.02,
+          "sky": 0,
+          "environment": 0.007,
+          "ocean": 0.005,
+          "vegetation": 0,
+          "props": 0.015,
+          "landmarks": 0.012,
+          "weather": 0.002,
+          "camera": 0.007,
+          "audio": 0.034
+        },
+        "moduleTotalMeanMs": 0.174
+      },
+      "info": {
+        "calls": 812,
+        "triangles": 1379968,
+        "points": 2512,
+        "lines": 0,
+        "programs": 94,
+        "geometries": 439,
+        "textures": 178
+      }
+    },
+    {
+      "label": "view: harbor",
+      "mode": "frame",
+      "raf": {
+        "n": 45,
+        "mean": 3.73,
+        "median": 1.4,
+        "p95": 5.4,
+        "min": 0.8,
+        "max": 54.6
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 3.333,
+        "renderSubmitMeanMs": 3.296,
+        "matrixWorldMeanMs": 0.127,
+        "modules": {
+          "controls": 0.016,
+          "rider": 0.016,
+          "events": 0.002,
+          "collectibles": 0.011,
+          "animals": 0.002,
+          "particles": 0.022,
+          "sky": 0,
+          "environment": 0.007,
+          "ocean": 0.009,
+          "vegetation": 0,
+          "props": 0.004,
+          "landmarks": 0,
+          "weather": 0.002,
+          "camera": 0,
+          "audio": 0.033
+        },
+        "moduleTotalMeanMs": 0.124
+      },
+      "info": {
+        "calls": 529,
+        "triangles": 864350,
+        "points": 2512,
+        "lines": 0,
+        "programs": 94,
+        "geometries": 496,
+        "textures": 181
+      }
+    },
+    {
+      "label": "view: peak (wide vista)",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 11.53,
+        "median": 11.2,
+        "p95": 32.9,
+        "min": 0.3,
+        "max": 44.3
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 10.461,
+        "renderSubmitMeanMs": 9.722,
+        "matrixWorldMeanMs": 0.246,
+        "modules": {
+          "controls": 0.032,
+          "rider": 0.017,
+          "events": 0.005,
+          "collectibles": 0.012,
+          "animals": 0.017,
+          "particles": 0.015,
+          "sky": 0.002,
+          "environment": 0.007,
+          "ocean": 0.015,
+          "vegetation": 0.002,
+          "props": 0.01,
+          "landmarks": 0.01,
+          "weather": 0.005,
+          "camera": 0.007,
+          "audio": 0.054
+        },
+        "moduleTotalMeanMs": 0.21
+      },
+      "info": {
+        "calls": 660,
+        "triangles": 1045708,
+        "points": 2512,
+        "lines": 0,
+        "programs": 94,
+        "geometries": 496,
+        "textures": 181
+      }
+    },
+    {
+      "label": "view: lighthouse night",
+      "mode": "frame",
+      "raf": {
+        "n": 41,
+        "mean": 3.13,
+        "median": 1,
+        "p95": 13.3,
+        "min": 0.5,
+        "max": 23.3
+      },
+      "gpu": {},
+      "cpu": {
+        "postSubmitMeanMs": 2.59,
+        "renderSubmitMeanMs": 2.583,
+        "matrixWorldMeanMs": 0.124,
+        "modules": {
+          "controls": 0.02,
+          "rider": 0.012,
+          "events": 0.002,
+          "collectibles": 0.007,
+          "animals": 0.012,
+          "particles": 0.007,
+          "sky": 0,
+          "environment": 0.007,
+          "ocean": 0.007,
+          "vegetation": 0,
+          "props": 0.005,
+          "landmarks": 0.005,
+          "weather": 0,
+          "camera": 0.002,
+          "audio": 0.029
+        },
+        "moduleTotalMeanMs": 0.115
+      },
+      "info": {
+        "calls": 492,
+        "triangles": 650064,
+        "points": 2620,
+        "lines": 0,
+        "programs": 95,
+        "geometries": 500,
+        "textures": 181
+      }
+    }
+  ],
+  "pageErrors": []
+}

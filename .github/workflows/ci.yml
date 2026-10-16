@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Module test suites
+        run: npm test
+
+      - name: Build bundle
+        run: npm run build
+
+      - name: Bundle size budget
+        if: matrix.node == '22'
+        run: node tools/dev/check-bundle-budget.mjs
+
+  bundle-in-sync:
+    name: committed bundle matches src/
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      # The repository root doubles as the GitHub Pages site, so game.js and
+      # styles.css are committed on purpose. They must stay reproducible from
+      # src/: run `npm run build:publish` and commit the result.
+      - name: Verify game.js / styles.css are up to date
+        run: |
+          fail=0
+          for f in game.js styles.css; do
+            if cmp -s "$f" "dist/$f"; then
+              echo "ok    $f is in sync with src/"
+            else
+              echo "::error file=$f::$f is stale - run 'npm run build:publish' and commit the result"
+              fail=1
+            fi
+          done
+          exit $fail
+
+  static-checks:
+    name: static checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Every src module parses
+        run: node --check src/main.js
+
+      - name: No network access at runtime
+        run: node tools/dev/check-no-network.mjs
+
+      - name: README links resolve
+        run: node tools/dev/check-readme-links.mjs

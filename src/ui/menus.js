@@ -47,6 +47,31 @@ const VOLUME_ROWS = [
   { key: 'sfxVolume', zh: '音效', en: 'SFX', testid: 'sfx' },
 ];
 
+/** Camera shake amount (0 / low / medium / high). */
+const SHAKE_OPTIONS = [
+  { value: 'off', zh: '关', en: 'OFF' },
+  { value: 'low', zh: '低', en: 'LOW' },
+  { value: 'medium', zh: '中', en: 'MED' },
+  { value: 'high', zh: '高', en: 'HIGH' },
+];
+
+const UI_SCALE_OPTIONS = [
+  { value: '1', zh: '100%', en: 'NORMAL' },
+  { value: '1.15', zh: '115%', en: 'LARGE' },
+  { value: '1.3', zh: '130%', en: 'XL' },
+];
+
+/** Comfort defaults follow the OS "reduce motion" preference. */
+function prefersReducedMotion(win) {
+  try {
+    const view = win || (typeof window !== 'undefined' ? window : null);
+    if (!view || typeof view.matchMedia !== 'function') return false;
+    return !!view.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch (err) {
+    return false;
+  }
+}
+
 const TIPS = [
   '正在铺设环岛公路… COLLECTING GRAVEL',
   '正在种下松树林… PLANTING PINES',
@@ -68,7 +93,7 @@ const KEY_ROWS = [
   ['B', '车铃 BELL'],
   ['F', '取景网格 PHOTO GRID'],
   ['T', '时间流转 TIME OF DAY'],
-  ['R', '重置视角 RESET VIEW'],
+  ['R', '回到路面 RETURN TO ROAD'],
   ['N', '静音 MUTE'],
   ['Esc', '暂停 PAUSE'],
   ['Enter', '环岛计时赛 TIME TRIAL'],
@@ -140,7 +165,18 @@ export function createMenus(ctx = {}, opts = {}) {
     muted: false,
     timeMode: 'sunset',
     language: 'zh',
+    // Comfort / accessibility (see docs/research/fixes-mobile-a11y.md).
+    reduceMotion: prefersReducedMotion(env.window),
+    shakeIntensity: null,
+    comfortFov: null,
+    autoCinematic: null,
+    uiScale: 1,
+    captions: true,
   };
+  // Unset comfort switches inherit the OS preference instead of a hard default.
+  if (settings.shakeIntensity === null) settings.shakeIntensity = settings.reduceMotion ? 'off' : 'medium';
+  if (settings.comfortFov === null) settings.comfortFov = settings.reduceMotion;
+  if (settings.autoCinematic === null) settings.autoCinematic = !settings.reduceMotion;
   if (env.settings && typeof env.settings === 'object') {
     for (const k of Object.keys(settings)) {
       if (env.settings[k] !== undefined) settings[k] = env.settings[k];
@@ -215,14 +251,32 @@ export function createMenus(ctx = {}, opts = {}) {
         changed = true;
       }
     }
+    if (typeof patch.uiScale === 'number') applyUiScale(patch.uiScale);
     syncSettingsUI();
     if (notify !== false && changed) emitSettings(patch);
+  }
+
+  /** settings.uiScale -> the CSS variable the stylesheet multiplies. */
+  function applyUiScale(v) {
+    const n = asNum(v);
+    if (n == null) return;
+    try {
+      const target = doc.documentElement;
+      if (target && target.style && typeof target.style.setProperty === 'function') {
+        target.style.setProperty('--pi-ui-scale', String(Math.max(0.85, Math.min(1.35, n))));
+      }
+    } catch (err) {
+      /* ignore */
+    }
   }
 
   const refs = {
     quality: null,
     time: null,
     language: null,
+    shake: null,
+    uiScale: null,
+    toggles: {},
     muteBtn: null,
     note: null,
     volumes: {},
@@ -243,6 +297,18 @@ export function createMenus(ctx = {}, opts = {}) {
     setGroupValue(refs.quality, settings.quality);
     setGroupValue(refs.time, settings.timeMode);
     setGroupValue(refs.language, settings.language);
+    setGroupValue(refs.shake, settings.shakeIntensity);
+    setGroupValue(refs.uiScale, String(settings.uiScale));
+    if (refs.toggles) {
+      for (const key of Object.keys(refs.toggles)) {
+        const entry = refs.toggles[key];
+        if (!entry || !entry.btn) continue;
+        const on = !!settings[key];
+        entry.btn.classList.toggle('is-on', on);
+        entry.btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if (entry.state) entry.state.textContent = on ? (entry.labels ? entry.labels.on : '开 ON') : (entry.labels ? entry.labels.off : '关 OFF');
+      }
+    }
     for (const row of VOLUME_ROWS) {
       const entry = refs.volumes[row.key];
       if (!entry) continue;
@@ -320,6 +386,26 @@ export function createMenus(ctx = {}, opts = {}) {
     if (testid) box.setAttribute('data-testid', testid);
     for (const opt of options_) box.appendChild(optionButton(group, opt, onPick));
     return box;
+  }
+
+  /**
+   * On/off pill. Keeps the option look but shows the state in words so the
+   * control does not rely on the highlighted style alone.
+   */
+  function toggleButton(spec) {
+    const btn = el('button', 'pi-option pi-option--toggle');
+    btn.type = 'button';
+    if (spec.testid) btn.setAttribute('data-testid', spec.testid);
+    btn.setAttribute('aria-pressed', 'false');
+    const label = el('span', 'pi-option__zh', spec.zh);
+    const state = el('span', 'pi-option__state', '关 OFF');
+    btn.appendChild(label);
+    btn.appendChild(state);
+    btn.addEventListener('click', (ev) => {
+      if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+      spec.onToggle();
+    });
+    return { btn, label, state, labels: spec.labels };
   }
 
   // -- title screen ---------------------------------------------------------
@@ -485,7 +571,7 @@ export function createMenus(ctx = {}, opts = {}) {
     card.appendChild(actions);
 
     const foot = el('div', 'pi-card__foot');
-    foot.appendChild(el('span', 'pi-card__note', '按 Esc 继续 · ESC TO RESUME'));
+    foot.appendChild(el('span', 'pi-card__note', '按 Esc 或点按「继续」· ESC OR TAP TO RESUME'));
     card.appendChild(foot);
 
     inner.appendChild(card);
@@ -569,6 +655,57 @@ export function createMenus(ctx = {}, opts = {}) {
     lang.appendChild(row('界面语言', refs.language));
     grid.appendChild(lang);
 
+    // comfort / accessibility
+    const comfort = section('体验', 'COMFORT & ACCESS', 'settings-comfort');
+    refs.shake = buildOptions('shake', SHAKE_OPTIONS, 'shake-options', (v) =>
+      setSetting({ shakeIntensity: v })
+    );
+    comfort.appendChild(row('屏震强度', refs.shake));
+
+    const fovToggle = toggleButton({
+      zh: '舒适视角',
+      testid: 'toggle-comfort-fov',
+      labels: { on: '开 ON', off: '关 OFF' },
+      onToggle: () => setSetting({ comfortFov: !settings.comfortFov }),
+    });
+    refs.toggles.comfortFov = fovToggle;
+    comfort.appendChild(row('舒适视角', fovToggle.btn));
+
+    const motionToggle = toggleButton({
+      zh: '减少运动',
+      testid: 'toggle-reduce-motion',
+      labels: { on: '开 ON', off: '关 OFF' },
+      onToggle: () => setSetting({ reduceMotion: !settings.reduceMotion }),
+    });
+    refs.toggles.reduceMotion = motionToggle;
+    comfort.appendChild(row('减少运动', motionToggle.btn));
+
+    const cineToggle = toggleButton({
+      zh: '自动电影镜头',
+      testid: 'toggle-auto-cinematic',
+      labels: { on: '开 ON', off: '关 OFF' },
+      onToggle: () => setSetting({ autoCinematic: !settings.autoCinematic }),
+    });
+    refs.toggles.autoCinematic = cineToggle;
+    comfort.appendChild(row('自动镜头', cineToggle.btn));
+
+    const captionToggle = toggleButton({
+      zh: '字幕与音效提示',
+      testid: 'toggle-captions',
+      labels: { on: '开 ON', off: '关 OFF' },
+      onToggle: () => setSetting({ captions: !settings.captions }),
+    });
+    refs.toggles.captions = captionToggle;
+    comfort.appendChild(row('字幕/提示', captionToggle.btn));
+
+    refs.uiScale = buildOptions('uiscale', UI_SCALE_OPTIONS, 'uiscale-options', (v) =>
+      setSetting({ uiScale: asNum(v) ?? 1 })
+    );
+    comfort.appendChild(row('界面缩放', refs.uiScale));
+    const comfortNote = el('p', 'pi-card__note', '减少运动默认跟随系统「减少动态效果」· FOLLOWS YOUR OS REDUCE-MOTION SETTING');
+    comfort.appendChild(comfortNote);
+    grid.appendChild(comfort);
+
     // other
     const other = section('其他', 'OTHER', 'settings-other');
     const resetBtn = button({
@@ -579,6 +716,17 @@ export function createMenus(ctx = {}, opts = {}) {
       onClick: resetView,
     });
     other.appendChild(row('视角', resetBtn));
+    const resetProgressBtn = button({
+      zh: '重置进度',
+      en: 'RESET PROGRESS',
+      inline: true,
+      testid: 'btn-reset-progress',
+      onClick: () => {
+        call(options.onResetProgress);
+        flashNote('探索进度已重置 · PROGRESS RESET');
+      },
+    });
+    other.appendChild(row('进度', resetProgressBtn));
     const noteLine = el('div', 'pi-settings__row');
     noteLine.appendChild(el('span', 'pi-settings__label', '存档'));
     const noteWrap = el('div', 'pi-settings__control pi-settings__control--split');
@@ -798,7 +946,7 @@ export function createMenus(ctx = {}, opts = {}) {
     if (destroyed) return;
     const next = screens[screen] ? screen : 'none';
     const prev = currentScreen;
-    if (prev === 'title' || prev === 'pause') returnTo = prev;
+    if (prev === 'title' || prev === 'pause' || prev === 'none') returnTo = prev;
     currentScreen = next;
     for (const name of Object.keys(screens)) {
       screens[name].classList.toggle('is-active', name === next);
@@ -811,6 +959,23 @@ export function createMenus(ctx = {}, opts = {}) {
   function onKeyDown(ev) {
     if (destroyed || currentScreen === 'none') return;
     const key = ev.key || '';
+    if (key === 'Tab') {
+      // Keep focus inside the open panel: Tab must not wander into the
+      // browser chrome (or back into the canvas) while a menu owns the screen.
+      const list = focusables(screens[currentScreen]);
+      if (list.length < 2) return;
+      const active = doc.activeElement;
+      const index = list.indexOf(active);
+      const step = ev.shiftKey ? -1 : 1;
+      const nextIndex = index < 0 ? 0 : (index + step + list.length) % list.length;
+      if (typeof ev.preventDefault === 'function') ev.preventDefault();
+      try {
+        list[nextIndex].focus({ preventScroll: true });
+      } catch (err) {
+        list[nextIndex].focus();
+      }
+      return;
+    }
     if (key === 'Escape' || key === 'Esc') {
       if (currentScreen === 'settings' || currentScreen === 'help' || currentScreen === 'about') {
         ev.preventDefault();
@@ -845,12 +1010,31 @@ export function createMenus(ctx = {}, opts = {}) {
   if (typeof root.addEventListener === 'function') {
     root.addEventListener('keydown', onKeyDown, { passive: false });
   }
+  // The HUD help chip and the touch pad both ask for the controls panel.
+  let offHelp = null;
+  {
+    const bus = env.bus;
+    if (bus && typeof bus.on === 'function') {
+      try {
+        offHelp = bus.on('ui:help', () => {
+          if (destroyed) return;
+          if (currentScreen === 'none' || currentScreen === 'pause') show('help');
+        });
+      } catch (err) {
+        offHelp = null;
+      }
+    }
+  }
   syncSettingsUI();
 
   function destroy() {
     if (destroyed) return;
     destroyed = true;
     clearTimers();
+    if (typeof offHelp === 'function') {
+      try { offHelp(); } catch (err) { /* ignore */ }
+      offHelp = null;
+    }
     if (tipTimer) clearInterval(tipTimer);
     tipTimer = 0;
     if (typeof root.removeEventListener === 'function') root.removeEventListener('keydown', onKeyDown);
@@ -863,7 +1047,9 @@ export function createMenus(ctx = {}, opts = {}) {
     destroy,
     setLoadingProgress,
     setLoading,
-    setSettings: (patch) => setSetting(patch, false),
+    // notify=true so boot-time restore reaches the camera (motion comfort),
+    // the HUD (captions / UI scale) and main.js in one hop.
+    setSettings: (patch) => setSetting(patch, true),
     syncSettingsUI,
     get current() {
       return currentScreen;

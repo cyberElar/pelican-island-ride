@@ -55,8 +55,6 @@ const STRINGS = {
     discovered: '已探索',
     map: '地图',
     mapPending: '地图数据未就绪',
-    legendPoi: '地标',
-    legendYou: '你',
     checkpoint: '检查点',
     time: '用时',
     best: '最佳',
@@ -64,6 +62,11 @@ const STRINGS = {
     record: '新纪录 / NEW RECORD',
     paused: '暂停',
     pausedSub: 'PAUSED',
+    help: '操作',
+    helpAria: '操作说明 CONTROLS & HELP',
+    crash: '碰撞 · CRASH',
+    legendPoi: '▲ 地标',
+    legendYou: '● 你',
     boot: '正在生成小岛…',
     photo: '摄影模式 PHOTO',
     gridLabel: '网格 F',
@@ -75,7 +78,7 @@ const STRINGS = {
       '提示：按住 Shift 冲刺',
       '提示：按 M 打开地图',
       '提示：黄昏时灯塔最亮',
-      '提示：收集金色羽毛可以解锁纪念册',
+      '提示：金色羽毛散落在路旁与地标附近',
     ],
   },
   en: {
@@ -83,8 +86,6 @@ const STRINGS = {
     discovered: 'DISCOVERED',
     map: 'MAP',
     mapPending: 'MAP DATA PENDING',
-    legendPoi: 'POI',
-    legendYou: 'YOU',
     checkpoint: 'CHECKPOINT',
     time: 'TIME',
     best: 'BEST',
@@ -92,6 +93,11 @@ const STRINGS = {
     record: 'NEW RECORD',
     paused: 'PAUSED',
     pausedSub: '已暂停',
+    help: 'HELP',
+    helpAria: 'CONTROLS & HELP 操作说明',
+    crash: 'CRASH · 碰撞',
+    legendPoi: '▲ POI',
+    legendYou: '● YOU',
     boot: 'BUILDING THE ISLAND…',
     photo: 'PHOTO MODE',
     gridLabel: 'GRID F',
@@ -103,7 +109,7 @@ const STRINGS = {
       'TIP: hold Shift to sprint',
       'TIP: press M for the map',
       'TIP: the lighthouse is brightest at dusk',
-      'TIP: golden feathers fill the almanac',
+      'TIP: golden feathers hide along the road and landmarks',
     ],
   },
 };
@@ -133,6 +139,40 @@ const POI_COLORS = {
 const MAP_INK = '#22201c';
 const MAP_TEAL = '#1f6f78';
 const MAP_POPPY = '#e0523f';
+
+/**
+ * Text equivalents for the synthesised sound effects. Audio-only feedback is
+ * invisible to deaf/hard-of-hearing players and to anyone riding muted, so
+ * every non-ambient cue also gets a caption line (and a screen-reader
+ * announcement). Ambient beds (wind, waves, birds) stay out on purpose - they
+ * are continuous, not events.
+ */
+const SFX_CAPTIONS = {
+  bell: '车铃 · BELL',
+  splash: '入水 · SPLASH',
+  crash: '碰撞 · CRASH',
+  pickup: '拾取 · PICKUP',
+  discovery: '发现地点 · DISCOVERY',
+  firework: '烟花 · FIREWORKS',
+  thunder: '雷声 · THUNDER',
+  balloon: '热气球 · BALLOON',
+  checkpoint: '检查点 · CHECKPOINT',
+};
+
+/** Minimap marker shapes per POI type - never colour alone. */
+const POI_SHAPES = {
+  lighthouse: 'triangle',
+  chapel: 'triangle',
+  waterfall: 'triangle',
+  harbor: 'square',
+  village: 'square',
+  windmill: 'diamond',
+  mill: 'diamond',
+  peak: 'ring',
+  cairn: 'ring',
+  ruins: 'ring',
+  lakeIsland: 'ring',
+};
 
 // ---------------------------------------------------------------------------
 // Small helpers (module scope, no allocations per call beyond the element)
@@ -229,6 +269,9 @@ function createNullHUD() {
     setMinimap: noop,
     setCameraMode: noop,
     setDiscoveredTotal: noop,
+    caption: noop,
+    announce: noop,
+    setCaptions: noop,
     isMinimapOpen: () => false,
   };
 }
@@ -266,52 +309,56 @@ export function createHUD(ctx = {}, opts = {}) {
     '  <div class="pi-letterbox__bar pi-letterbox__bar--top"></div>',
     '  <div class="pi-letterbox__bar pi-letterbox__bar--bottom"></div>',
     '</div>',
-    '<div class="pi-compass" id="pi-compass" data-testid="compass">',
+    '<div class="pi-compass" id="pi-compass" data-testid="compass" role="group" aria-label="罗盘与探索进度 COMPASS">',
     '  <div class="pi-compass__window">',
-    '    <div class="pi-compass__shift" id="pi-compass-shift">',
-    '      <div class="pi-compass__strip" id="pi-compass-strip" data-testid="compass-strip"></div>',
+    '    <div class="pi-compass__shift" id="pi-compass-shift" aria-hidden="true">',
+    '      <div class="pi-compass__strip" id="pi-compass-strip" data-testid="compass-strip" aria-hidden="true"></div>',
     '    </div>',
-    '    <div class="pi-compass__marker"></div>',
+    '    <div class="pi-compass__marker" aria-hidden="true"></div>',
     '  </div>',
     '  <div class="pi-compass__readout pi-num" id="pi-compass-readout" data-testid="compass-readout">000°</div>',
-    '  <div class="pi-compass__count" id="pi-hud-discovered" data-testid="discovered-count">已探索 0</div>',
+    '  <div class="pi-compass__count" id="pi-hud-discovered" data-testid="discovered-count" aria-live="polite" aria-atomic="true">已探索 0</div>',
     '</div>',
     '<div class="pi-hud-corner pi-hud-corner--tl">',
-    '  <div class="pi-chip pi-feather" id="pi-hud-feathers" data-testid="feathers">',
+    '  <div class="pi-chip pi-feather" id="pi-hud-feathers" data-testid="feathers" role="group" aria-label="金色羽毛 GOLDEN FEATHERS">',
     '    <svg class="pi-feather__icon" viewBox="0 0 24 24" aria-hidden="true">',
     '      <ellipse cx="13.4" cy="9.2" rx="4.6" ry="7.2" transform="rotate(38 13.4 9.2)" fill="currentColor" opacity="0.92"></ellipse>',
     '      <path d="M9.6 15.4 4.4 20.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>',
     '    </svg>',
-    '    <span class="pi-chip__value pi-num" id="pi-feather-count" data-testid="feather-count">0 / 40</span>',
+    '    <span class="pi-chip__value pi-num" id="pi-feather-count" data-testid="feather-count" aria-live="polite" aria-atomic="true">0 / 40</span>',
     '    <span class="pi-chip__label" id="pi-feather-label">羽毛</span>',
     '  </div>',
     '  <div class="pi-chip pi-chip--quiet" id="pi-hud-clock" data-testid="clock">',
     '    <span class="pi-chip__value" id="pi-clock-value" data-testid="clock-value">17:10</span>',
     '    <span class="pi-chip__label" id="pi-clock-phase">黄昏</span>',
     '  </div>',
+    '  <button type="button" class="pi-chip pi-chip--quiet pi-chip--btn" id="pi-hud-help" data-testid="hud-help" aria-label="操作说明 CONTROLS &amp; HELP">',
+    '    <span class="pi-chip__value" id="pi-help-glyph">?</span>',
+    '    <span class="pi-chip__label" id="pi-help-label">操作</span>',
+    '  </button>',
     '</div>',
     '<div class="pi-hud-corner pi-hud-corner--tr">',
-    '  <div class="pi-minimap pi-panel" id="pi-minimap" data-testid="minimap">',
+    '  <div class="pi-minimap pi-panel" id="pi-minimap" data-testid="minimap" role="group" aria-label="小地图 MINIMAP">',
     '    <div class="pi-minimap__inner">',
     '      <div class="pi-minimap__head">',
     '        <span class="pi-minimap__title" id="pi-minimap-title">地图</span>',
     '        <span class="pi-minimap__count pi-num" id="pi-minimap-count" data-testid="minimap-count">0/0</span>',
     '      </div>',
-    '      <canvas class="pi-minimap__canvas" id="pi-minimap-canvas" data-testid="minimap-canvas" width="180" height="180"></canvas>',
+    '      <canvas class="pi-minimap__canvas" id="pi-minimap-canvas" data-testid="minimap-canvas" width="180" height="180" role="img" aria-label="岛屿俯视图 ISLAND MAP"></canvas>',
     '      <div class="pi-minimap__legend">',
-    '        <span id="pi-minimap-legend-poi">地标</span>',
-    '        <span id="pi-minimap-legend-you">你</span>',
+    '        <span id="pi-minimap-legend-poi">▲ 地标</span>',
+    '        <span id="pi-minimap-legend-you">● 你</span>',
     '      </div>',
     '    </div>',
     '  </div>',
-    '  <div class="pi-race pi-panel" id="pi-race" data-testid="race">',
+    '  <div class="pi-race pi-panel" id="pi-race" data-testid="race" role="group" aria-label="环岛计时赛 TIME TRIAL">',
     '    <div class="pi-race__row">',
     '      <span class="pi-race__key" id="pi-race-key-cp">检查点</span>',
-    '      <span class="pi-race__val pi-num" id="pi-race-checkpoint" data-testid="race-checkpoint">0/0</span>',
+    '      <span class="pi-race__val pi-num" id="pi-race-checkpoint" data-testid="race-checkpoint" aria-live="polite" aria-atomic="true">0/0</span>',
     '    </div>',
     '    <div class="pi-race__row">',
     '      <span class="pi-race__key" id="pi-race-key-time">用时</span>',
-    '      <span class="pi-race__val pi-race__val--time pi-num" id="pi-race-time" data-testid="race-time">0:00.0</span>',
+    '      <span class="pi-race__val pi-race__val--time pi-num" id="pi-race-time" data-testid="race-time" role="timer" aria-label="用时 ELAPSED">0:00.0</span>',
     '    </div>',
     '    <div class="pi-race__row">',
     '      <span class="pi-race__key" id="pi-race-key-best">最佳</span>',
@@ -326,7 +373,7 @@ export function createHUD(ctx = {}, opts = {}) {
     '  </div>',
     '</div>',
     '<div class="pi-hud-corner pi-hud-corner--br">',
-    '  <div class="pi-speedo" id="pi-speedo" data-testid="speedometer">',
+    '  <div class="pi-speedo" id="pi-speedo" data-testid="speedometer" role="group" aria-label="速度 SPEED">',
     '    <svg class="pi-speedo__svg" id="pi-speedo-svg" viewBox="0 0 220 158" aria-hidden="true">',
     '      <path class="pi-speedo__track" id="pi-speedo-track"></path>',
     '      <path class="pi-speedo__fill" id="pi-speedo-arc" pathLength="100"></path>',
@@ -344,21 +391,21 @@ export function createHUD(ctx = {}, opts = {}) {
     '    </div>',
     '  </div>',
     '</div>',
-    '<div class="pi-race-banner pi-panel" id="pi-race-banner" data-testid="race-banner">',
+    '<div class="pi-race-banner pi-panel" id="pi-race-banner" data-testid="race-banner" role="status" aria-live="polite">',
     '  <h2 class="pi-race-banner__title" id="pi-race-banner-title">完成</h2>',
     '  <div class="pi-race-banner__time pi-num" id="pi-race-banner-time" data-testid="race-banner-time">0:00.0</div>',
     '  <div class="pi-race-banner__record" id="pi-race-record" data-testid="race-record">新纪录 / NEW RECORD</div>',
     '</div>',
-    '<div class="pi-discovery pi-panel" id="pi-discovery" data-testid="discovery">',
+    '<div class="pi-discovery pi-panel" id="pi-discovery" data-testid="discovery" role="status" aria-live="polite" aria-atomic="true">',
     '  <h2 class="pi-discovery__name" id="pi-discovery-name" data-testid="discovery-name"></h2>',
     '  <p class="pi-discovery__en" id="pi-discovery-en" data-testid="discovery-en"></p>',
     '  <p class="pi-discovery__sub" id="pi-discovery-sub" data-testid="discovery-sub"></p>',
     '</div>',
-    '<div class="pi-paused pi-panel" id="pi-paused" data-testid="paused">',
+    '<div class="pi-paused pi-panel" id="pi-paused" data-testid="paused" role="status">',
     '  <div class="pi-paused__title" id="pi-paused-title">暂停</div>',
     '  <div class="pi-paused__sub" id="pi-paused-sub">PAUSED</div>',
     '</div>',
-    '<div class="pi-photo" id="pi-photo" data-testid="photo-overlay">',
+    '<div class="pi-photo" id="pi-photo" data-testid="photo-overlay" role="group" aria-label="摄影模式 PHOTO MODE">',
     '  <div class="pi-photo__brackets" id="pi-photo-brackets">',
     '    <span class="pi-photo__bracket pi-photo__bracket--tl"></span>',
     '    <span class="pi-photo__bracket pi-photo__bracket--tr"></span>',
@@ -379,12 +426,18 @@ export function createHUD(ctx = {}, opts = {}) {
     '  <div class="pi-photo__hint" id="pi-photo-hint" data-testid="photo-hint">滚轮缩放 · 方向键移动 · F 切换网格 · P 退出</div>',
     '  <button type="button" class="pi-photo__gridchip is-on" id="pi-photo-gridchip" data-testid="photo-grid-toggle">网格 F</button>',
     '</div>',
-    '<div class="pi-toasts" id="pi-toasts" data-testid="toasts"></div>',
-    '<div class="pi-damage" id="pi-damage" data-testid="damage"></div>',
+    '<div class="pi-toasts" id="pi-toasts" data-testid="toasts" role="log" aria-live="polite" aria-relevant="additions"></div>',
+    '<div class="pi-caption" id="pi-caption" data-testid="caption" role="status" aria-live="off"></div>',
+    '<div class="pi-damage" id="pi-damage" data-testid="damage" aria-hidden="true">',
+    '  <div class="pi-damage__label" id="pi-damage-label" data-testid="damage-label">碰撞 · CRASH</div>',
+    '</div>',
+    '<div class="pi-sr-only" id="pi-sr-status" data-testid="sr-status" role="status" aria-live="polite" aria-atomic="true"></div>',
     '<div class="pi-loading" id="pi-loading" data-testid="loading">',
     '  <div class="pi-loading__brand">PELICAN ISLAND RIDE</div>',
     '  <div class="pi-loading__title" id="pi-loading-title" data-testid="loading-title">正在生成小岛…</div>',
-    '  <div class="pi-loading__bar"><div class="pi-loading__fill" id="pi-loading-fill" data-testid="loading-bar"></div></div>',
+    '  <div class="pi-loading__bar" id="pi-loading-bar" data-testid="loading-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="加载进度 LOADING">',
+    '    <div class="pi-loading__fill" id="pi-loading-fill" data-testid="loading-bar" aria-hidden="true"></div>',
+    '  </div>',
     '  <div class="pi-loading__meta">',
     '    <span id="pi-loading-label" data-testid="loading-label">生成地形</span>',
     '    <span class="pi-num" id="pi-loading-pct" data-testid="loading-percent">0%</span>',
@@ -409,7 +462,8 @@ export function createHUD(ctx = {}, opts = {}) {
     'pi-paused-sub', 'pi-photo', 'pi-photo-grid', 'pi-photo-mode', 'pi-photo-focal',
     'pi-photo-filter', 'pi-photo-hint', 'pi-photo-gridchip', 'pi-toasts', 'pi-damage',
     'pi-loading', 'pi-loading-fill', 'pi-loading-title', 'pi-loading-label', 'pi-loading-pct',
-    'pi-loading-tip',
+    'pi-loading-tip', 'pi-loading-bar', 'pi-caption', 'pi-sr-status', 'pi-damage-label',
+    'pi-hud-help', 'pi-help-label',
   ];
   for (const id of ids) E[id] = root.querySelector(`#${id}`);
 
@@ -447,6 +501,9 @@ export function createHUD(ctx = {}, opts = {}) {
 
   const timers = { discovery: 0, damage: 0 };
   const toastTimers = new Set();
+  let captionTimer = 0;
+  let srTimer = 0;
+  let captionsOn = true;
 
   // -- SVG speedometer ------------------------------------------------------
   function polar(r, deg) {
@@ -593,6 +650,9 @@ export function createHUD(ctx = {}, opts = {}) {
     if (E['pi-photo-gridchip']) E['pi-photo-gridchip'].textContent = s.gridLabel;
     if (E['pi-photo-hint']) E['pi-photo-hint'].textContent = s.hint;
     if (E['pi-camera-value']) applyCameraMode();
+    if (E['pi-help-label']) E['pi-help-label'].textContent = s.help;
+    if (E['pi-damage-label']) E['pi-damage-label'].textContent = s.crash;
+    if (E['pi-hud-help']) E['pi-hud-help'].setAttribute('aria-label', s.helpAria);
     if (E['pi-loading-tip']) {
       lastTipWrite = '';
       applyTip();
@@ -756,6 +816,30 @@ export function createHUD(ctx = {}, opts = {}) {
     return mmCtx;
   }
 
+  /**
+   * Marker outline per POI type. Shape (plus fill vs outline) carries the
+   * "discovered" state, so the map still reads without colour vision.
+   */
+  function tracePoiShape(c2d, x, y, r, shape) {
+    c2d.beginPath();
+    if (shape === 'triangle') {
+      c2d.moveTo(x, y - r * 1.25);
+      c2d.lineTo(x + r * 1.15, y + r * 0.85);
+      c2d.lineTo(x - r * 1.15, y + r * 0.85);
+      c2d.closePath();
+    } else if (shape === 'square') {
+      c2d.rect(x - r * 0.92, y - r * 0.92, r * 1.84, r * 1.84);
+    } else if (shape === 'diamond') {
+      c2d.moveTo(x, y - r * 1.3);
+      c2d.lineTo(x + r * 1.3, y);
+      c2d.lineTo(x, y + r * 1.3);
+      c2d.lineTo(x - r * 1.3, y);
+      c2d.closePath();
+    } else {
+      c2d.arc(x, y, r, 0, TAU);
+    }
+  }
+
   function drawMinimap() {
     const c2d = minimapContext();
     if (!c2d) return;
@@ -834,17 +918,24 @@ export function createHUD(ctx = {}, opts = {}) {
         const x = px(p.x);
         const y = px(p.z);
         const known = !!p.discovered || (p.id != null && found.has(p.id)) || (p.name != null && found.has(p.name));
-        c2d.beginPath();
-        c2d.arc(x, y, known ? 2.6 : 1.7, 0, TAU);
+        const shape = (p.type && POI_SHAPES[p.type]) || 'ring';
+        const r = known ? 3.0 : 2.2;
+        tracePoiShape(c2d, x, y, r, shape);
         if (known) {
           c2d.fillStyle = p.type && POI_COLORS[p.type] ? POI_COLORS[p.type] : MAP_TEAL;
           c2d.fill();
-          c2d.strokeStyle = 'rgba(34,32,28,0.5)';
-          c2d.lineWidth = 0.7;
-          c2d.stroke();
-        } else {
-          c2d.strokeStyle = 'rgba(34,32,28,0.3)';
+          c2d.strokeStyle = 'rgba(34,32,28,0.55)';
           c2d.lineWidth = 0.8;
+          c2d.stroke();
+          if (shape === 'ring') {
+            c2d.beginPath();
+            c2d.arc(x, y, r * 0.42, 0, TAU);
+            c2d.fillStyle = 'rgba(234,224,201,0.95)';
+            c2d.fill();
+          }
+        } else {
+          c2d.strokeStyle = 'rgba(34,32,28,0.42)';
+          c2d.lineWidth = 0.9;
           c2d.stroke();
         }
       }
@@ -931,11 +1022,60 @@ export function createHUD(ctx = {}, opts = {}) {
     node._piTimers.push(out);
   }
 
+  // -- captions + screen-reader announcements --------------------------------
+  /**
+   * Push a line into the visually-hidden polite live region. The region is
+   * cleared first so an identical message (e.g. two crashes in a row) is
+   * announced again instead of being swallowed as "no change".
+   */
+  function announce(text) {
+    const node = E['pi-sr-status'];
+    if (!node || text == null || text === '') return;
+    node.textContent = '';
+    clearTimeout(srTimer);
+    srTimer = setTimeout(() => {
+      if (!destroyed && E['pi-sr-status']) E['pi-sr-status'].textContent = String(text);
+    }, 40);
+  }
+
+  /** Visible subtitle line for an audio cue (hidden when captions are off). */
+  function showCaption(text) {
+    const node = E['pi-caption'];
+    if (!node || text == null || text === '') return;
+    if (!captionsOn || photoOn) return;
+    node.textContent = String(text);
+    node.classList.add('is-on');
+    clearTimeout(captionTimer);
+    captionTimer = setTimeout(() => {
+      if (!destroyed && E['pi-caption']) E['pi-caption'].classList.remove('is-on');
+    }, 1800);
+  }
+
+  /** settings.uiScale -> a single CSS variable the stylesheet multiplies. */
+  function applyUiScale(v) {
+    const n = asNum(v);
+    if (n == null) return;
+    const scale = Math.max(0.85, Math.min(1.35, n));
+    try {
+      const target = doc.documentElement;
+      if (target && target.style && typeof target.style.setProperty === 'function') {
+        target.style.setProperty('--pi-ui-scale', String(scale));
+      }
+    } catch (err) {
+      /* ignore: scaled UI is a nicety, never a hard failure */
+    }
+  }
+
   // -- public API -----------------------------------------------------------
   function update(dt, state) {
     if (destroyed) return;
     const d = isNum(dt) ? dt : 0;
 
+    if (state?.discoveryActive === false && letterboxUser) setLetterbox(false);
+    if (state?.photoMode && isNum(state.camera?.fov)) {
+      setText('photoFocal', E['pi-photo-focal'], String(focalFromFov(state.camera.fov)));
+    }
+    if (isNum(state?.discoverableTotal) && poiTotal !== state.discoverableTotal) setDiscoveredTotal(state.discoverableTotal);
     const player = state && state.player ? state.player : null;
     const kmh = player && isNum(player.speed) ? Math.abs(player.speed) * 3.6 : 0;
 
@@ -1047,6 +1187,8 @@ export function createHUD(ctx = {}, opts = {}) {
     if (E['pi-discovery']) E['pi-discovery'].classList.add('is-on');
     letterboxTemp = true;
     applyLetterbox();
+    announce(name == null || name === '' ? String(nameEn || '') : String(name));
+    showCaption(name == null ? '' : `${name}${nameEn ? ' · ' + nameEn : ''}`);
     clearTimeout(timers.discovery);
     timers.discovery = setTimeout(() => {
       if (destroyed) return;
@@ -1089,6 +1231,10 @@ export function createHUD(ctx = {}, opts = {}) {
     pausedOn = !!on;
     if (E['pi-paused']) E['pi-paused'].classList.toggle('is-on', pausedOn);
     root.classList.toggle('is-paused', pausedOn);
+    // The HUD only fades to opacity 0 - keep it out of the accessibility tree
+    // while the pause menu owns the screen.
+    root.setAttribute('aria-hidden', pausedOn ? 'true' : 'false');
+    announce(pausedOn ? '已暂停 PAUSED' : '继续骑行 RESUMED');
   }
 
   function setLoading(on, progress01, label) {
@@ -1105,6 +1251,12 @@ export function createHUD(ctx = {}, opts = {}) {
       const p = clamp01(progress01);
       if (E['pi-loading-fill']) E['pi-loading-fill'].style.width = `${(p * 100).toFixed(1)}%`;
       setText('loadingPct', E['pi-loading-pct'], `${Math.round(p * 100)}%`);
+      const bar = E['pi-loading-bar'];
+      if (bar) {
+        const pct = String(Math.round(p * 100));
+        bar.setAttribute('aria-valuenow', pct);
+        if (label != null) bar.setAttribute('aria-valuetext', `${pct}% ${String(label)}`);
+      }
     }
     if (label != null) setText('loadingLabel', E['pi-loading-label'], String(label));
   }
@@ -1145,14 +1297,18 @@ export function createHUD(ctx = {}, opts = {}) {
   function flashDamage() {
     if (destroyed) return;
     const el = E['pi-damage'];
-    if (!el) return;
-    el.classList.remove('is-on');
-    void el.offsetWidth;
-    el.classList.add('is-on');
-    clearTimeout(timers.damage);
-    timers.damage = setTimeout(() => {
-      if (!destroyed && el) el.classList.remove('is-on');
-    }, 460);
+    if (el) {
+      el.classList.remove('is-on');
+      void el.offsetWidth;
+      el.classList.add('is-on');
+      clearTimeout(timers.damage);
+      timers.damage = setTimeout(() => {
+        if (!destroyed && el) el.classList.remove('is-on');
+      }, 560);
+    }
+    // Red flash alone excludes colour-blind players: pair it with words.
+    showCaption(SFX_CAPTIONS.crash);
+    announce('碰撞 CRASH');
   }
 
   function setMinimap(on) {
@@ -1198,6 +1354,10 @@ export function createHUD(ctx = {}, opts = {}) {
     unsubs.length = 0;
     clearTimeout(timers.discovery);
     clearTimeout(timers.damage);
+    clearTimeout(captionTimer);
+    clearTimeout(srTimer);
+    captionTimer = 0;
+    srTimer = 0;
     clearToastTimers();
     if (E['pi-toasts']) {
       while (E['pi-toasts'].firstChild) E['pi-toasts'].removeChild(E['pi-toasts'].firstChild);
@@ -1306,8 +1466,36 @@ export function createHUD(ctx = {}, opts = {}) {
           applyLanguage();
         }
       }
+      if (typeof p.captions === 'boolean') {
+        captionsOn = p.captions;
+        if (!captionsOn && E['pi-caption']) E['pi-caption'].classList.remove('is-on');
+      }
+      if (typeof p.uiScale === 'number') applyUiScale(p.uiScale);
     })
   );
+
+  // Audio -> text: every event cue also shows a caption line and is announced.
+  unsubs.push(
+    listen(bus, 'sfx', (p) => {
+      const name = typeof p === 'string' ? p : p && p.name;
+      const text = name && SFX_CAPTIONS[name];
+      if (!text) return;
+      if (name === 'crash') return; // flashDamage() already captions it
+      showCaption(text);
+      announce(text);
+    })
+  );
+
+  // In-game help: the pad/keyboard can reach the controls panel at any time.
+  const helpBtn = E['pi-hud-help'];
+  if (helpBtn && typeof helpBtn.addEventListener === 'function') {
+    helpBtn.addEventListener('click', (ev) => {
+      if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+      if (bus && typeof bus.emit === 'function') {
+        try { bus.emit('ui:help', { source: 'hud' }); } catch (err) { /* ignore */ }
+      }
+    });
+  }
 
   const onGridChip = (ev) => {
     if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
@@ -1345,6 +1533,12 @@ export function createHUD(ctx = {}, opts = {}) {
     setMinimap,
     setCameraMode,
     setDiscoveredTotal,
+    caption: showCaption,
+    announce,
+    setCaptions(on) {
+      captionsOn = on !== false;
+      if (!captionsOn && E['pi-caption']) E['pi-caption'].classList.remove('is-on');
+    },
     isMinimapOpen: () => minimapOn,
     // read-only-ish views used by the dev harness
     get current() {

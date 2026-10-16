@@ -1,0 +1,66 @@
+name: Bug report
+description: Something behaves wrong, crashes, or looks broken.
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping! Please check the live build first:
+        https://cyberelar.github.io/pelican-island-ride/
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+      placeholder: |
+        1. Started the time trial at the ring road gate
+        2. Drove into the river gorge
+        3. Expected a splash, the bike kept driving on water
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Where did it happen?
+      description: Live site, local build, or `file://`? Include `?seed=` / `?quality=` if you used them.
+      placeholder: https://cyberelar.github.io/pelican-island-ride/?seed=1234
+    validations:
+      required: false
+  - type: dropdown
+    id: preset
+    attributes:
+      label: Quality preset
+      options:
+        - Auto (default)
+        - Ultra
+        - High
+        - Medium
+        - Low
+        - Not sure
+    validations:
+      required: false
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser + version, OS, GPU if known. Paste the debug info from the pause menu if you can.
+      placeholder: Chrome 141 / Windows 11 / RTX 3060 / integrated GPU
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console output
+      description: Any errors or warnings from the browser console (F12).
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues
+          required: true
+        - label: I tried a hard reload (Ctrl/Cmd+Shift+R) to rule out a stale cached bundle
+          required: true

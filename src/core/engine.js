@@ -5,7 +5,7 @@
 
 import * as THREE from 'three';
 import { EventBus, clamp } from './utils.js';
-import { QUALITY_PRESETS, GAME } from './settings.js';
+import { QUALITY_PRESETS, GAME, PIXEL_BUDGET } from './settings.js';
 
 export function createEngine(canvas, { quality = 'high' } = {}) {
   const preset = { ...(QUALITY_PRESETS[quality] || QUALITY_PRESETS.high) };
@@ -56,13 +56,14 @@ export function createEngine(canvas, { quality = 'high' } = {}) {
   const sizes = {
     width: window.innerWidth,
     height: window.innerHeight,
-    pixelRatio: Math.min(window.devicePixelRatio || 1, preset.pixelRatioCap),
+    pixelRatio: 1,
     scale: preset.renderScale,
   };
 
   const resizeFns = [];
   let post = null;
   let running = false;
+  let contextLost = false;
   let updateFn = null;
   let rafId = 0;
   let elapsed = 0;
@@ -72,7 +73,12 @@ export function createEngine(canvas, { quality = 'high' } = {}) {
     const h = Math.max(240, window.innerHeight);
     sizes.width = w;
     sizes.height = h;
-    sizes.pixelRatio = Math.min(window.devicePixelRatio || 1, preset.pixelRatioCap);
+    sizes.scale = preset.renderScale;
+    // Absolute pixel budget: the drawing buffer (and every composer render
+    // target) is w*scale × h*scale × pixelRatio, so clamp the effective pixel
+    // ratio when the requested buffer would blow past PIXEL_BUDGET pixels.
+    const budgetRatio = Math.sqrt(PIXEL_BUDGET / Math.max(1, w * h * sizes.scale * sizes.scale));
+    sizes.pixelRatio = Math.max(0.25, Math.min(window.devicePixelRatio || 1, preset.pixelRatioCap, budgetRatio));
     const rw = Math.max(2, Math.round(w * sizes.scale));
     const rh = Math.max(2, Math.round(h * sizes.scale));
     renderer.setPixelRatio(sizes.pixelRatio);
@@ -81,6 +87,9 @@ export function createEngine(canvas, { quality = 'high' } = {}) {
     canvas.style.height = `${h}px`;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    // Keep the composer's internal buffers on the same DPR as the renderer,
+    // otherwise the intermediate targets drift after a monitor change.
+    if (post && post.setPixelRatio) post.setPixelRatio(sizes.pixelRatio);
     if (post && post.setSize) post.setSize(rw, rh, w, h);
     for (const fn of resizeFns) fn(sizes, camera, renderer);
   }
@@ -131,10 +140,14 @@ export function createEngine(canvas, { quality = 'high' } = {}) {
     preset,
     qualityLevel: quality,
     get elapsed() { return elapsed; },
+    get running() { return running; },
+    get contextLost() { return contextLost; },
     setQuality,
     setPost(p) {
       post = p;
-      if (post && post.setSize) post.setSize(Math.round(sizes.width * sizes.scale), Math.round(sizes.height * sizes.scale), sizes.width, sizes.height);
+      if (!post) return;
+      if (post.setPixelRatio) post.setPixelRatio(sizes.pixelRatio);
+      if (post.setSize) post.setSize(Math.round(sizes.width * sizes.scale), Math.round(sizes.height * sizes.scale), sizes.width, sizes.height);
     },
     get post() { return post; },
     onResize(fn) { resizeFns.push(fn); return () => { const i = resizeFns.indexOf(fn); if (i >= 0) resizeFns.splice(i, 1); }; },
@@ -155,10 +168,12 @@ export function createEngine(canvas, { quality = 'high' } = {}) {
 
   canvas.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
+    contextLost = true;
     engine.stop();
     bus.emit('context:lost');
   });
   canvas.addEventListener('webglcontextrestored', () => {
+    contextLost = false;
     bus.emit('context:restored');
     if (updateFn) engine.start(updateFn);
   });

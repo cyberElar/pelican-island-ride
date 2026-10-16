@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest an idea, a piece of polish, or a performance improvement.
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the player-facing gap, not just the solution.
+      placeholder: On a phone there is no way to steer, so the game is unplayable.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      placeholder: Add a virtual stick and peddle/brake buttons for touch devices.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Gameplay
+        - World / content
+        - Visuals / post-processing
+        - Audio
+        - Performance
+        - Accessibility
+        - UI / HUD
+        - Tooling / docs / repo
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints to keep in mind
+      description: |
+        The project has two hard rules: no external asset files (textures, audio,
+        models) and no network access at runtime - everything is generated in
+        code. It must also keep running from `file://`.
+    validations:
+      required: false

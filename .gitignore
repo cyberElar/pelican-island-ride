@@ -5,6 +5,7 @@ node_modules/
 dist/
 
 # local scratch
+.scratch/
 *.log
 *.tmp
 .agent-probe.txt

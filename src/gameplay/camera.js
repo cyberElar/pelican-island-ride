@@ -10,10 +10,90 @@
 import * as THREE from 'three';
 import { clamp, clamp01, damp, angleDamp, lerp, TAU } from '../core/utils.js';
 
+/**
+ * Motion-comfort knobs. `settings.shakeIntensity` scales every camera shake,
+ * `comfortFov` steadies the speed FOV and the first-person bob, and
+ * `reduceMotion` (default: the OS `prefers-reduced-motion` value) removes
+ * shake, FOV pumping and automatic fly-bys entirely.
+ */
+const SHAKE_SCALE = { off: 0, low: 0.35, medium: 0.7, high: 1 };
+const DEFAULT_MOTION = { reduceMotion: false, comfortFov: false, autoCinematic: true, shakeIntensity: 'medium' };
+
 export function createCameraController(ctx) {
   const { engine, layout, input, bus } = ctx;
   const camera = engine.camera;
   const mode = { current: 'tour' };
+
+  const motion = { ...DEFAULT_MOTION };
+  /** Set when a settings change wants the in-flight shake dropped. */
+  let shakeResetRequested = false;
+
+  function applyMotionSettings(patch) {
+    if (!patch || typeof patch !== 'object') return;
+    if (typeof patch.reduceMotion === 'boolean') motion.reduceMotion = patch.reduceMotion;
+    if (typeof patch.comfortFov === 'boolean') motion.comfortFov = patch.comfortFov;
+    if (typeof patch.autoCinematic === 'boolean') motion.autoCinematic = patch.autoCinematic;
+    if (typeof patch.shakeIntensity === 'string' && SHAKE_SCALE[patch.shakeIntensity] !== undefined) {
+      motion.shakeIntensity = patch.shakeIntensity;
+    }
+    if (motion.reduceMotion) shakeResetRequested = true;
+  }
+
+  // Seed the defaults before the first frame: use the saved settings when they
+  // exist, otherwise follow the operating system preference.
+  {
+    let restored = false;
+    try {
+      const win = ctx.window || (typeof window !== 'undefined' ? window : null);
+      const raw = win && win.localStorage ? win.localStorage.getItem('pelicanIsland.settings') : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const body = parsed && parsed.v === 1 && parsed.data ? parsed.data : parsed;
+        if (body && typeof body === 'object') {
+          applyMotionSettings(body);
+          restored = true;
+        }
+      }
+      if (!restored && win && typeof win.matchMedia === 'function') {
+        const reduce = !!win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        applyMotionSettings({
+          reduceMotion: reduce,
+          comfortFov: reduce,
+          autoCinematic: !reduce,
+          shakeIntensity: reduce ? 'off' : DEFAULT_MOTION.shakeIntensity,
+        });
+      }
+    } catch (err) {
+      /* a hostile storage or media query must not break construction */
+    }
+  }
+
+  if (bus && typeof bus.on === 'function') {
+    try {
+      bus.on('settings:changed', applyMotionSettings);
+    } catch (err) {
+      /* ignore */
+    }
+  }
+
+  /** Effective shake multiplier after the comfort switches. */
+  function shakeFactor() {
+    if (motion.reduceMotion) return 0;
+    const base = SHAKE_SCALE[motion.shakeIntensity] != null ? SHAKE_SCALE[motion.shakeIntensity] : 0.7;
+    return motion.comfortFov ? base * 0.6 : base;
+  }
+
+  /** Speed-driven FOV widening (degrees per m/s). */
+  function speedFovGain(scale) {
+    if (motion.reduceMotion) return scale * 0.2;
+    return motion.comfortFov ? scale * 0.4 : scale;
+  }
+  const cycle = ['chase', 'firstPerson', 'cinematic'];
+  const modeEvent = { mode: 'tour' };
+  const photoEvent = { position: camera.position };
+  const photoState = { position: null, fov: 45 };
+  const tourPos = new THREE.Vector3();
+  const tourLook = new THREE.Vector3();
 
   const chase = {
     pos: new THREE.Vector3(0, 60, 0),
@@ -81,6 +161,9 @@ export function createCameraController(ctx) {
 
   function setMode(m) {
     if (mode.current === m) return;
+    const previous = mode.current;
+    if (m !== 'cinematic') { cine.phase = 'idle'; cine.timer = 0; }
+    if (previous === 'photo') bus.emit('photo:exit', photoEvent);
     mode.current = m;
     if (m === 'photo') {
       photo.pos.copy(camera.position);
@@ -89,11 +172,15 @@ export function createCameraController(ctx) {
       photo.pitch = _e.x;
       photo.focusDist = 12;
     }
-    bus.emit('camera:mode', { mode: m });
+    if (m === 'photo') bus.emit('photo:enter', photoEvent);
+    modeEvent.mode = m;
+    bus.emit('camera:mode', modeEvent);
   }
 
   function addShake(amount) {
-    shakeState.amount = Math.max(shakeState.amount, amount);
+    const factor = shakeFactor();
+    if (factor <= 0) return;
+    shakeState.amount = Math.max(shakeState.amount, amount * factor);
   }
 
   function aimAt(camPos, target, dt, lambda = 9) {
@@ -104,6 +191,13 @@ export function createCameraController(ctx) {
 
   /** Cinematic flyby around a point (used by discovery events). */
   function flyby(position, duration = 7, radius = 46) {
+    // Comfort mode never hijacks the camera: the landmark card still shows,
+    // the rider keeps their own view.
+    if (motion.reduceMotion || !motion.autoCinematic) {
+      cine.phase = 'idle';
+      cine.timer = 0;
+      return;
+    }
     cine.phase = 'flyby';
     cine.timer = duration;
     cine.target.copy(position);
@@ -118,6 +212,11 @@ export function createCameraController(ctx) {
   function update(dt, state) {
     const p = state.player;
     const speed = Math.abs(p.speed);
+
+    if (shakeResetRequested) {
+      shakeState.amount = 0;
+      shakeResetRequested = false;
+    }
 
     // crash → shake
     if (p.crash > 0.55 && lastCrash <= 0.55) addShake(0.5);
@@ -156,7 +255,12 @@ export function createCameraController(ctx) {
     state.camera.mode = mode.current;
     state.camera.fov = camera.fov;
     state.camera.compassHeading = ((p.heading * 180 / Math.PI) % 360 + 360) % 360;
-    state.camera.photo = { ...photo, position: photo.pos };
+    photoState.position = photo.pos;
+    photoState.fov = photo.fov;
+    photoState.focusDist = photo.focusDist;
+    photoState.aperture = photo.aperture;
+    photoState.filter = photo.filter;
+    state.camera.photo = photoState;
     void speed;
   }
 
@@ -195,7 +299,7 @@ export function createCameraController(ctx) {
     camera.up.set(0, 1, 0);
     aimAt(camera.position, chase.look, dt, 7);
 
-    const fovTarget = 54 + clamp(speed, 0, 22) * 0.60 + (p.boost ? 3 : 0);
+    const fovTarget = 54 + clamp(speed, 0, 22) * speedFovGain(0.60) + (p.boost ? 3 : 0);
     chase.fov = damp(chase.fov, fovTarget, 3.2, dt);
     camera.fov = chase.fov;
     camera.updateProjectionMatrix();
@@ -203,7 +307,8 @@ export function createCameraController(ctx) {
 
   function updateFirstPerson(dt, state) {
     const p = state.player;
-    const bob = Math.sin(p.wheelSpin * 0.5) * 0.028 * clamp01(Math.abs(p.speed) / 8);
+    const bobAmp = motion.reduceMotion ? 0 : motion.comfortFov ? 0.008 : 0.028;
+    const bob = Math.sin(p.wheelSpin * 0.5) * bobAmp * clamp01(Math.abs(p.speed) / 8);
     _v.set(
       p.position.x + Math.sin(p.heading) * 0.35,
       p.position.y + 1.62 + bob,
@@ -216,7 +321,7 @@ export function createCameraController(ctx) {
       p.position.z + Math.cos(p.heading) * 12,
     );
     aimAt(camera.position, _v2, dt, 12);
-    first.fov = damp(first.fov, 66 + clamp(Math.abs(p.speed), 0, 20) * 0.8, 3, dt);
+    first.fov = damp(first.fov, 66 + clamp(Math.abs(p.speed), 0, 20) * speedFovGain(0.8), 3, dt);
     camera.fov = first.fov;
     camera.updateProjectionMatrix();
   }
@@ -236,7 +341,7 @@ export function createCameraController(ctx) {
       camera.position.lerp(_v, 1 - Math.exp(-1.6 * dt));
       _v2.set(cine.target.x, cine.target.y + r * 0.12, cine.target.z);
       aimAt(camera.position, _v2, dt, 3.5);
-      if (cine.timer <= 0) cine.phase = 'idle';
+      if (cine.timer <= 0) { setMode('chase'); updateChase(dt, state); return; }
     } else {
       // slow idle orbit around the rider
       cine.angle += dt * 0.06;
@@ -256,8 +361,8 @@ export function createCameraController(ctx) {
 
   function updateTour(dt, state) {
     tour.t = (tour.t + dt * tour.speed) % 1;
-    const pos = tourCurve.getPointAt(tour.t);
-    const look = tourLookCurve.getPointAt(tour.t);
+    const pos = tourCurve.getPointAt(tour.t, tourPos);
+    const look = tourLookCurve.getPointAt(tour.t, tourLook);
     camera.position.lerp(pos, 1 - Math.exp(-1.5 * dt));
     aimAt(camera.position, look, dt, 2.5);
     camera.fov = damp(camera.fov, 46, 1.2, dt);
@@ -272,15 +377,15 @@ export function createCameraController(ctx) {
     photo.pitch = clamp(photo.pitch - look.dy * 0.0022, -1.4, 1.4);
     const move = photo.speed * dt * (photo.fov / 45);
     const cy = Math.cos(photo.yaw), sy = Math.sin(photo.yaw);
-    const forward = { x: -sy, z: -cy };
-    const right = { x: cy, z: -sy };
+    const forwardX = -sy, forwardZ = -cy;
+    const rightX = cy, rightZ = -sy;
     // WASD fly
     const dt2 = dt;
     let mx = 0, mz = 0, my = 0;
-    if (input.held('throttle')) { mx += forward.x; mz += forward.z; }
-    if (input.held('brake')) { mx -= forward.x; mz -= forward.z; }
-    if (input.held('left')) { mx -= right.x; mz -= right.z; }
-    if (input.held('right')) { mx += right.x; mz += right.z; }
+    if (input.held('throttle')) { mx += forwardX; mz += forwardZ; }
+    if (input.held('brake')) { mx -= forwardX; mz -= forwardZ; }
+    if (input.held('left')) { mx -= rightX; mz -= rightZ; }
+    if (input.held('right')) { mx += rightX; mz += rightZ; }
     if (input.held('boost')) my += 1;
     if (input.held('brakeHard')) my -= 1;
     const len = Math.hypot(mx, mz) || 1;
@@ -302,6 +407,7 @@ export function createCameraController(ctx) {
   return {
     update,
     setMode,
+    cycleMode() { setMode(cycle[(cycle.indexOf(mode.current) + 1) % cycle.length]); },
     get mode() { return mode.current; },
     flyby,
     addShake,
@@ -313,5 +419,16 @@ export function createCameraController(ctx) {
     },
     setTourProgress(t) { tour.t = t; },
     angleDamp,
+    /** Motion-comfort plumbing (used by main.js, the settings bus and tests). */
+    applyMotionSettings,
+    get motionSettings() {
+      return {
+        reduceMotion: motion.reduceMotion,
+        comfortFov: motion.comfortFov,
+        autoCinematic: motion.autoCinematic,
+        shakeIntensity: motion.shakeIntensity,
+        shakeFactor: shakeFactor(),
+      };
+    },
   };
 }

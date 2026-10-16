@@ -47,11 +47,11 @@ const TREE_MIN_SPACING = 4;            // m, hard minimum between two tree trunk
 const COLLIDER_MIN_RADIUS = 0.35;      // m, only thicker trunks become colliders
 const COLLIDER_ROAD_RANGE = 25;        // m, colliders only matter near the road
 const COLLIDER_CAP = 600;
-const GRASS_ATTEMPT_DENSITY = 0.0095;  // attempts / m^2 of land (high preset)
-const FLOWER_PATCH_DENSITY = 0.000072; // patches / m^2 of meadow + forest
+const GRASS_ATTEMPT_DENSITY = 0.032;  // attempts / m^2 of land (high preset)
+const FLOWER_PATCH_DENSITY = 0.00011; // patches / m^2 of meadow + forest
 
 const GRASS_BIOME_WEIGHT = {
-  meadow: 1.0, forest: 0.35, beach: 0.15, rock: 0.1,
+  meadow: 1.0, forest: 0.55, beach: 0.22, rock: 0.65,
   road: 0, river: 0, lake: 0, ocean: 0, snow: 0,
 };
 const FLOWER_BIOME_WEIGHT = { meadow: 1.0, forest: 0.45 };
@@ -249,6 +249,16 @@ export function createVegetation(ctx) {
   };
   let elapsed = 0;
 
+  // TEMP-PROFILE: build-stage stopwatch (browser only) - remove after tuning.
+  const __timing = typeof window !== 'undefined' && typeof performance !== 'undefined';
+  let __tprev = __timing ? performance.now() : 0;
+  const __tmark = (name) => {
+    if (!__timing) return;
+    const now = performance.now();
+    console.log(`[pelican] veg.${name} ${Math.round(now - __tprev)}ms`);
+    __tprev = now;
+  };
+
   /** Meshes whose instance count follows a preset density multiplier. */
   const scaledMeshes = [];
   /** Meshes that may cast shadows, with the tier each one belongs to. */
@@ -397,6 +407,7 @@ export function createVegetation(ctx) {
   // Tree species - each variant is ONE merged geometry plus scale metadata
   // -------------------------------------------------------------------------
 
+  __tmark('materials+wind');
   function buildPineVariant(r) {
     const h = r.range(10, 22);
     const trunkR = 0.14 + h * 0.014;
@@ -447,7 +458,7 @@ export function createVegetation(ctx) {
     for (let i = 0; i < blobs; i++) {
       const a = (i / blobs) * TAU + r.range(-0.45, 0.45);
       const rr = crownR * r.range(0.4, 1.0);
-      const blobR = h * r.range(0.075, 0.13);
+      const blobR = h * r.range(0.13, 0.19);
       const geo = new THREE.IcosahedronGeometry(blobR, 0);
       addPart(parts, geo, 1, trs(
         Math.cos(a) * rr, crownY + h * r.range(-0.06, 0.16) - rr * 0.22, Math.sin(a) * rr,
@@ -784,6 +795,7 @@ export function createVegetation(ctx) {
     }
   }
 
+  __tmark('geometry+mask');
   function fastHeight(x, z) {
     const gx = (x - MASK_MIN) / MASK_STEP;
     const gz = (z - MASK_MIN) / MASK_STEP;
@@ -795,6 +807,110 @@ export function createVegetation(ctx) {
     const a = mask[j0 * MASK_N + i0], b = mask[j0 * MASK_N + i1];
     const c = mask[j1 * MASK_N + i0], d = mask[j1 * MASK_N + i1];
     return lerp(lerp(a, b, fx), lerp(c, d, fx), fz);
+  }
+
+  // Match terrain's actual triangle surface; sub-grid height noise otherwise
+  // buries short plants by metres on slopes. Cache vertices only during build.
+  const terrainSegments = Math.max(64, preset.terrainSegments | 0);
+  const terrainStep = WORLD / terrainSegments;
+  const groundCache = new Float32Array((terrainSegments + 1) ** 2).fill(NaN);
+  function groundVertex(i, j) {
+    const index = j * (terrainSegments + 1) + i;
+    let h = groundCache[index];
+    if (Number.isNaN(h)) {
+      h = layout.heightAt(-HALF + i * terrainStep, -HALF + j * terrainStep);
+      groundCache[index] = h;
+    }
+    return h;
+  }
+  function coverHeight(x, z) {
+    const gx = Math.max(0, Math.min(terrainSegments - 0.00001, (x + HALF) / terrainStep));
+    const gz = Math.max(0, Math.min(terrainSegments - 0.00001, (z + HALF) / terrainStep));
+    const i = Math.floor(gx), j = Math.floor(gz), u = gx - i, v = gz - j;
+    const b = groundVertex(i + 1, j), c = groundVertex(i, j + 1);
+    return u + v <= 1
+      ? groundVertex(i, j) * (1 - u - v) + b * u + c * v
+      : groundVertex(i + 1, j + 1) * (u + v - 1) + b * (1 - v) + c * (1 - u);
+  }
+
+  // Cached biome lookup: layout.biomeAt() runs several heightAt() queries and
+  // the grass scatter calls it once per attempt (~1.5M at high). Biomes change
+  // slowly, so one 40 m grid keeps the scatter visually identical while
+  // removing the dominant boot cost (measured: grass pass 21.8 s -> seconds).
+  const BIOME_STEP = 40;
+  const BIOME_N = Math.ceil((WORLD + 240) / BIOME_STEP) + 1;
+  const biomeGrid = new Int16Array(BIOME_N * BIOME_N);
+  const biomeIds = [];
+  const biomeIdsByName = new Map();
+  for (let j = 0; j < BIOME_N; j++) {
+    const z = MASK_MIN + j * BIOME_STEP;
+    for (let i = 0; i < BIOME_N; i++) {
+      const name = layout.biomeAt(MASK_MIN + i * BIOME_STEP, z);
+      let id = biomeIdsByName.get(name);
+      if (id === undefined) {
+        id = biomeIds.length;
+        biomeIdsByName.set(name, id);
+        biomeIds.push(name);
+      }
+      biomeGrid[j * BIOME_N + i] = id;
+    }
+  }
+  __tmark('biomeGrid');
+
+  function biomeNear(x, z) {
+    const i = Math.max(0, Math.min(BIOME_N - 1, Math.round((x - MASK_MIN) / BIOME_STEP)));
+    const j = Math.max(0, Math.min(BIOME_N - 1, Math.round((z - MASK_MIN) / BIOME_STEP)));
+    return biomeIds[biomeGrid[j * BIOME_N + i]];
+  }
+
+  // Uncertain-zone flags. A 40 m biome grid cannot resolve the 9.5 m road
+  // ribbon, a gorge river or a shoreline, so instead of trusting the grid
+  // there, cells that *may* touch those features are flagged and the exact
+  // layout.* / biomeAt() rule runs only inside them. Flagging is generous by
+  // half a cell diagonal, so an unflagged point can never violate the rules.
+  const EXCL_STEP = 24;
+  const EXCL_N = Math.ceil((WORLD + 240) / EXCL_STEP) + 1;
+  const EXCL_SLACK = Math.hypot(EXCL_STEP, EXCL_STEP) * 0.5 + 0.5;
+  const exclGrid = new Uint8Array(EXCL_N * EXCL_N);
+  {
+    const raw = new Uint8Array(EXCL_N * EXCL_N);
+    for (let j = 0; j < EXCL_N; j++) {
+      const z = MASK_MIN + j * EXCL_STEP;
+      for (let i = 0; i < EXCL_N; i++) {
+        const x = MASK_MIN + i * EXCL_STEP;
+        let f = 0;
+        if (layout.roadDistance(x, z) < 4.75 + EXCL_SLACK) f |= 1;
+        if (layout.riverDistance(x, z) < 9 + EXCL_SLACK) f |= 2;
+        const dl = Math.hypot(x - LAKE.center.x, z - LAKE.center.z);
+        const surface = dl < LAKE.radius * 1.25 ? LAKE_Y : 0;
+        if (coverHeight(x, z) < surface + 6) f |= 4;
+        raw[j * EXCL_N + i] = f;
+      }
+    }
+    // Dilate one cell so a flagged feature cannot clip a corner of a
+    // neighbouring, unvisited cell.
+    for (let j = 0; j < EXCL_N; j++) {
+      for (let i = 0; i < EXCL_N; i++) {
+        let f = 0;
+        for (let dj = -1; dj <= 1 && f !== 7; dj++) {
+          const jj = j + dj;
+          if (jj < 0 || jj >= EXCL_N) continue;
+          for (let di = -1; di <= 1; di++) {
+            const ii = i + di;
+            if (ii < 0 || ii >= EXCL_N) continue;
+            f |= raw[jj * EXCL_N + ii];
+          }
+        }
+        exclGrid[j * EXCL_N + i] = f;
+      }
+    }
+  }
+  __tmark('exclGrid');
+
+  function exclBits(x, z) {
+    const i = Math.max(0, Math.min(EXCL_N - 1, Math.round((x - MASK_MIN) / EXCL_STEP)));
+    const j = Math.max(0, Math.min(EXCL_N - 1, Math.round((z - MASK_MIN) / EXCL_STEP)));
+    return exclGrid[j * EXCL_N + i];
   }
 
   /** Fraction of a chunk's 4x4 probe grid that reads as land above 1.2 m. */
@@ -1021,21 +1137,23 @@ export function createVegetation(ctx) {
 
     // Split into one InstancedMesh per variant.
     for (let v = 0; v < def.baked.length; v++) {
-      const list = placed.filter((p) => p.variant === v);
-      if (!list.length) continue;
       const variant = def.baked[v];
-      makeInstanced(
-        `tree:${def.id}:${v}`,
-        variant.geometry,
-        variant.materials,
-        list,
-        {
-          kind: 'tree', species: def.id, variant: v, tint: true,
-          height: variant.height, trunkRadius: variant.trunkRadius,
-          densityKey: 'treeDensity',
-          shadowTier: 'trunkFoliage', receiveShadow: receiveStatic,
-        }
-      );
+      for (let tier = 0; tier < 2; tier++) {
+        const list = placed.filter((p) => p.variant === v && (layout.roadDistance(p.x, p.z) < 95 ? 1 : 0) === tier);
+        if (!list.length) continue;
+        makeInstanced(
+          `tree:${def.id}:${v}:${tier}`,
+          variant.geometry,
+          variant.materials,
+          list,
+          {
+            kind: 'tree', species: def.id, variant: v, tint: true,
+            height: variant.height, trunkRadius: variant.trunkRadius,
+            densityKey: 'treeDensity',
+            shadowTier: tier ? 'trunkFoliage' : 'none', receiveShadow: receiveStatic,
+          }
+        );
+      }
     }
     stats.trees += placed.length;
     return placed;
@@ -1048,8 +1166,13 @@ export function createVegetation(ctx) {
 
   function sampleForest(r, poi, inner) {
     const a = r.float() * TAU;
-    const rr = poi.radius * Math.sqrt(r.float()) * inner;
-    return { x: poi.position.x + Math.cos(a) * rr, z: poi.position.z + Math.sin(a) * rr };
+    // Stable groves overlap into crowns, with glades between them.
+    const grove = r.irange(0, 95);
+    const ga = grove * 2.3999632297;
+    const gr = poi.radius * inner * Math.sqrt((grove + 0.5) / 96);
+    const rr = 52 * Math.sqrt(r.float());
+    return { x: poi.position.x + Math.cos(ga) * gr + Math.cos(a) * rr,
+      z: poi.position.z + Math.sin(ga) * gr + Math.sin(a) * rr };
   }
 
   function sampleForestRing(r, poi, lo, hi) {
@@ -1108,17 +1231,17 @@ export function createVegetation(ctx) {
   }
 
   // pine: the whole north-east pinewood, happy on slopes
-  placeTrees(treeById.pine, 700, (r) => sampleForest(r, layout.pois.pineForest, 0.95),
+  placeTrees(treeById.pine, 3800, (r) => sampleForest(r, layout.pois.pineForest, 0.95),
     treeClear({ maxSlope: 0.62 }),
     (x, z) => biomeIs(x, z, ['forest', 'meadow', 'rock', 'snow']));
 
   // oak: broadleaf woodland, gently sloping ground
-  placeTrees(treeById.oak, 520, (r) => sampleForest(r, layout.pois.forest, 0.9),
+  placeTrees(treeById.oak, 3600, (r) => sampleForest(r, layout.pois.forest, 0.9),
     treeClear({ maxSlope: 0.48 }),
     (x, z) => biomeIs(x, z, ['forest', 'meadow']));
 
   // birch: the sunny rim of both forests
-  placeTrees(treeById.birch, 300,
+  placeTrees(treeById.birch, 700,
     (r) => sampleForestRing(r, r.chance(0.5) ? layout.pois.forest : layout.pois.pineForest, 0.82, 1.22),
     treeClear({ maxSlope: 0.45 }),
     (x, z) => biomeIs(x, z, ['forest', 'meadow']));
@@ -1152,12 +1275,12 @@ export function createVegetation(ctx) {
   // -------------------------------------------------------------------------
 
   {
-    const target = Math.round(1150 * densityOf('treeDensity'));
+    const target = Math.round(2600 * densityOf('treeDensity'));
     const perKind = [[], [], []];
     const maxTries = target * 18;
     let placed = 0;
     for (let tries = 0; tries < maxTries && placed < target; tries++) {
-      const c = rng.chance(0.45)
+      const c = rng.chance(0.65) ? sampleRoadSide(rng, 7, 60) : rng.chance(0.65)
         ? sampleForestRing(rng, rng.chance(0.5) ? layout.pois.forest : layout.pois.pineForest, 0.72, 1.35)
         : sampleIsland(rng, 2320);
       const x = c.x, z = c.z;
@@ -1170,7 +1293,7 @@ export function createVegetation(ctx) {
       const def = BUSH_DEFS[kindIndex];
       const variantIndex = rng.irange(0, def.baked.length - 1);
       perKind[kindIndex].push({
-        x, y: layout.heightAt(x, z) - 0.1, z,
+        x, y: coverHeight(x, z) - 0.1, z,
         ry: rng.float() * TAU,
         rx: rng.range(-0.06, 0.06),
         rz: rng.range(-0.06, 0.06),
@@ -1201,6 +1324,7 @@ export function createVegetation(ctx) {
   // Rocks: scattered boulders, big accents, stream pebbles
   // -------------------------------------------------------------------------
 
+  __tmark('trees');
   const ROCK_BIOME_WEIGHT = { rock: 1.0, snow: 0.5, beach: 0.3, meadow: 0.22, forest: 0.18 };
 
   {
@@ -1222,7 +1346,7 @@ export function createVegetation(ctx) {
       boulders[variantIndex].push({
         // Partial burial scaled with the rock, so small and large boulders both
         // read as half-sunk stones instead of disappearing into the ground.
-        x, y: layout.heightAt(x, z) - 0.45 * scale, z,
+        x, y: coverHeight(x, z) - 0.45 * scale, z,
         ry: rng.float() * TAU,
         rx: rng.range(-0.4, 0.4),
         rz: rng.range(-0.4, 0.4),
@@ -1291,7 +1415,7 @@ export function createVegetation(ctx) {
         if (layout.slopeAt(x, z) > 0.85) continue;
         const variantIndex = rng.irange(0, PEBBLE_DEFS.length - 1);
         pebbles[variantIndex].push({
-          x, y: layout.heightAt(x, z) - 0.05, z,
+          x, y: coverHeight(x, z) - 0.05, z,
           ry: rng.float() * TAU,
           rx: rng.range(-0.5, 0.5),
           rz: rng.range(-0.5, 0.5),
@@ -1318,6 +1442,34 @@ export function createVegetation(ctx) {
   built.flowerDensity = densityOf('flowerDensity');
 
   {
+    // Reuse island chunks: the dense road corridor adds no grass draw calls.
+    const corridor = Array.from({ length: CHUNK_GRID * CHUNK_GRID }, () => []);
+    const roadAttempts = Math.round(layout.roadLength * 120 * 0.32 * built.grassDensity);
+    for (let i = 0; i < roadAttempts; i++) {
+      // Inlined sampleRoadSide(): the lateral distance is needed anyway, and
+      // every layout.* query per attempt was the hot spot of the whole boot.
+      layout.roadPoint(rng.float(), _roadPt);
+      const spread = rng.sign() * rng.range(5.5, 63);
+      const x = _roadPt.x - _roadPt.dirZ * spread;
+      const z = _roadPt.z + _roadPt.dirX * spread;
+      // Reachability guard: 4.75 m = ROAD_WIDTH/2 + 1.5, same as onRoad(x, z, 1.5).
+      if (Math.abs(spread) < 4.75) continue;
+      const ci = Math.floor((x + HALF) / CHUNK_SIZE);
+      const cj = Math.floor((z + HALF) / CHUNK_SIZE);
+      if (ci < 0 || ci >= CHUNK_GRID || cj < 0 || cj >= CHUNK_GRID) continue;
+      const list = corridor[cj * CHUNK_GRID + ci];
+      const biome = biomeNear(x, z);
+      if (!GRASS_BIOME_WEIGHT[biome]) continue;
+      const flags = exclBits(x, z);
+      const h = coverHeight(x, z);
+      if ((flags & 1) && layout.onRoad(x, z, 1.5)) continue;
+      if ((flags & 2) && layout.riverDistance(x, z) < 9) continue;
+      if ((flags & 4) && layout.waterDepth(x, z) > 0.1) continue;
+      const dry = biome === 'beach' || biome === 'rock';
+      list.push({ x, y: h - 0.04, z, ry: rng.float() * TAU,
+        sx: rng.range(1.2, 2.2), sy: rng.range(dry ? 0.3 : 0.65, dry ? 0.65 : 1.35),
+        sz: rng.range(1.2, 2.2), tint: greenTint(rng, 0.8) });
+    }
     for (let cj = 0; cj < CHUNK_GRID; cj++) {
       for (let ci = 0; ci < CHUNK_GRID; ci++) {
         const x0 = -HALF + ci * CHUNK_SIZE;
@@ -1333,15 +1485,23 @@ export function createVegetation(ctx) {
           const x = x0 + rng.float() * CHUNK_SIZE;
           const z = z0 + rng.float() * CHUNK_SIZE;
           if (fastHeight(x, z) < 1.2) continue;
-          const weight = GRASS_BIOME_WEIGHT[layout.biomeAt(x, z)];
+          const weight = GRASS_BIOME_WEIGHT[biomeNear(x, z)];
           if (!weight || rng.float() >= weight) continue;
+          const h = coverHeight(x, z);
+          const dl = Math.hypot(x - LAKE.center.x, z - LAKE.center.z);
+          const surface = dl < LAKE.radius * 1.25 ? LAKE_Y : 0;
+          if (h < surface + 0.4) continue;
+          // Near a road, a gorge or a shoreline the coarse grids are not
+          // trusted: the categorical rule runs exactly, as the tests check it.
+          if (exclBits(x, z) && !GRASS_BIOME_WEIGHT[layout.biomeAt(x, z)]) continue;
           list.push({
-            x, y: layout.heightAt(x, z) - 0.04, z,
+            x, y: h - 0.04, z,
             ry: rng.float() * TAU,
-            sx: rng.range(0.7, 1.25), sy: rng.range(0.55, 1.15), sz: rng.range(0.7, 1.25),
+            sx: rng.range(1.1, 2.0), sy: rng.range(0.6, 1.2), sz: rng.range(1.1, 2.0),
             tint: greenTint(rng, 1.2),
           });
         }
+        list.push(...corridor[cj * CHUNK_GRID + ci]);
         if (!list.length) continue;
         makeInstanced(`grass:${ci}:${cj}`, GEO_GRASS, matGrass, list, {
           kind: 'grass', densityKey: 'grassDensity', tint: true,
@@ -1352,6 +1512,7 @@ export function createVegetation(ctx) {
     }
   }
 
+  __tmark('grass');
   // -------------------------------------------------------------------------
   // Flowers - patch based, same chunking, meadow + forest edge, denser at POIs
   // -------------------------------------------------------------------------
@@ -1412,7 +1573,7 @@ export function createVegetation(ctx) {
             if (layout.waterDepth(x, z) > 0.1) continue;
             if (layout.riverDistance(x, z) < 5.5) continue;
             list.push({
-              x, y: layout.heightAt(x, z) - 0.03, z,
+              x, y: coverHeight(x, z) - 0.03, z,
               ry: rng.float() * TAU,
               sx: rng.range(0.8, 1.2), sy: rng.range(0.75, 1.3), sz: rng.range(0.8, 1.2),
               s: kind.height,
@@ -1420,6 +1581,25 @@ export function createVegetation(ctx) {
             });
           }
         }
+      }
+    }
+
+    for (let patch = 0; patch < 2400 * built.flowerDensity; patch++) {
+      const c = sampleRoadSide(rng, 7, 55);
+      if (!FLOWER_BIOME_WEIGHT[layout.biomeAt(c.x, c.z)]) continue;
+      const kindIndex = pickKind(rng.float());
+      for (let i = 0; i < 14; i++) {
+        const x = c.x + rng.range(-3, 3), z = c.z + rng.range(-3, 3);
+        if (layout.onRoad(x, z, 1.5) || layout.waterDepth(x, z) > 0.1 || layout.riverDistance(x, z) < 6) continue;
+        const ci = Math.floor((x + HALF) / CHUNK_SIZE), cj = Math.floor((z + HALF) / CHUNK_SIZE);
+        if (ci < 0 || ci >= CHUNK_GRID || cj < 0 || cj >= CHUNK_GRID) continue;
+        const key = `${ci}:${cj}:${kindIndex}`;
+        let list = buckets.get(key);
+        if (!list) { list = []; buckets.set(key, list); }
+        const h = FLOWER_KINDS[kindIndex].height;
+        list.push({ x, y: coverHeight(x, z) - 0.03, z, ry: rng.float() * TAU,
+          sx: h * rng.range(0.8, 1.4), sy: h * rng.range(0.8, 1.4), sz: h,
+          tint: greenTint(rng, 0.2) });
       }
     }
 
@@ -1435,6 +1615,7 @@ export function createVegetation(ctx) {
     }
   }
 
+  __tmark('flowers');
   // -------------------------------------------------------------------------
   // Reeds / cattails (river + lake shore), water lilies, beach debris
   // -------------------------------------------------------------------------
@@ -1603,6 +1784,50 @@ export function createVegetation(ctx) {
   }
 
   // -------------------------------------------------------------------------
+  // Understory accents share a tiny fixed set of procedural geometries.
+  {
+    const fernParts = newPartList();
+    for (let i = 0; i < 7; i++) {
+      const leaf = bladeGeometry(0.28, 0.85, 0.45, 0.04);
+      addPart(fernParts, leaf, 0, trs(0, 0, 0, 0, i * TAU / 7, 0.7));
+      leaf.dispose();
+    }
+    const fern = finishPartList(fernParts);
+    const fungusParts = newPartList();
+    const stem = new THREE.CylinderGeometry(0.035, 0.05, 0.23, 5);
+    const cap = new THREE.SphereGeometry(0.18, 7, 3, 0, TAU, 0, HALF_PI);
+    addPart(fungusParts, stem, 0, trs(0, 0.115, 0));
+    addPart(fungusParts, cap, 0, trs(0, 0.23, 0, 0, 0, 0, 1, 0.55, 1));
+    stem.dispose(); cap.dispose();
+    const fungus = finishPartList(fungusParts);
+    const log = new THREE.CylinderGeometry(0.18, 0.28, 3.8, 6).rotateZ(HALF_PI).translate(0, 0.22, 0);
+    const defs = [
+      { id: 'fern', geometry: fern, material: matReed, count: 2200 },
+      { id: 'mushroom', geometry: fungus, material: matDriftwood, count: 700 },
+      { id: 'fallenLog', geometry: log, material: matBark, count: 220 },
+      { id: 'pebble', geometry: PEBBLE_DEFS[0], material: matPebble, count: 5200 },
+    ];
+    for (const def of defs) {
+      const list = [];
+      const target = Math.round(def.count * built.treeDensity);
+      for (let attempt = 0; attempt < target * 12 && list.length < target; attempt++) {
+        const c = rng.chance(0.7) ? sampleRoadSide(rng, 7, 60)
+          : sampleForest(rng, rng.chance(0.5) ? layout.pois.forest : layout.pois.pineForest, 1);
+        const x = c.x, z = c.z;
+        if (!layout.isClear(x, z, { road: 6, poi: 1, river: 6, minHeight: 1.2, maxSlope: 0.58 })) continue;
+        const biome = layout.biomeAt(x, z);
+        const damp = biome === 'forest' || layout.riverDistance(x, z) < 50
+          || Math.hypot(x - LAKE.center.x, z - LAKE.center.z) < LAKE.radius * 1.4;
+        if (def.id !== 'pebble' && !damp) continue;
+        list.push({ x, y: coverHeight(x, z) - 0.03, z, ry: rng.float() * TAU,
+          s: rng.range(0.65, 1.4), tint: def.id === 'fern' ? greenTint(rng) : greyTint(rng) });
+      }
+      if (list.length) makeInstanced(`understory:${def.id}`, def.geometry, def.material, list,
+        { kind: def.id, densityKey: 'treeDensity', tint: true, receiveShadow: receiveStatic });
+    }
+  }
+
+  __tmark('water+understory');
   // Quality, stats and the per-frame update
   // -------------------------------------------------------------------------
 

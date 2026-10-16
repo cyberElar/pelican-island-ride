@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Play the live build
+    url: https://cyberelar.github.io/pelican-island-ride/
+    about: Check the current deployment before filing a bug.
+  - name: Technical spec
+    url: https://github.com/cyberElar/pelican-island-ride/blob/main/docs/SPEC.md
+    about: Module contracts, budgets and art direction the code is written against.

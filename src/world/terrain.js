@@ -73,14 +73,15 @@ export function createTerrain(ctx) {
       // Base color = weighted average of the detail textures (used as the
       // far-distance color when detail fades out).
       tmpColor.setRGB(0, 0, 0);
-      tmpColor.r = AVG.grass.r * w.grass + AVG.sand.r * w.sand + AVG.rock.r * rock + AVG.snow.r * w.snow + AVG.dirt.r * w.dirt * 0.55;
-      tmpColor.g = AVG.grass.g * w.grass + AVG.sand.g * w.sand + AVG.rock.g * rock + AVG.snow.g * w.snow + AVG.dirt.g * w.dirt * 0.55;
-      tmpColor.b = AVG.grass.b * w.grass + AVG.sand.b * w.sand + AVG.rock.b * rock + AVG.snow.b * w.snow + AVG.dirt.b * w.dirt * 0.55;
-      const norm = w.grass + w.sand + rock + w.snow + w.dirt * 0.55 || 1;
+      // Dirt is folded in at a reduced weight on purpose: at full strength the
+      // brown albedo painted huge dark blotches across the hillsides, which
+      // read as broken lighting rather than as soil.
+      const dW = w.dirt * 0.30;
+      tmpColor.r = AVG.grass.r * w.grass + AVG.sand.r * w.sand + AVG.rock.r * rock + AVG.snow.r * w.snow + AVG.dirt.r * dW;
+      tmpColor.g = AVG.grass.g * w.grass + AVG.sand.g * w.sand + AVG.rock.g * rock + AVG.snow.g * w.snow + AVG.dirt.g * dW;
+      tmpColor.b = AVG.grass.b * w.grass + AVG.sand.b * w.sand + AVG.rock.b * rock + AVG.snow.b * w.snow + AVG.dirt.b * dW;
+      const norm = w.grass + w.sand + rock + w.snow + dW || 1;
       tmpColor.multiplyScalar(1 / norm);
-      // subtle macro brightness variation
-      const macro = 0.92 + 0.16 * splat2[vi * 2 + 1];
-      tmpColor.multiplyScalar(macro);
       colors[vi * 3] = tmpColor.r;
       colors[vi * 3 + 1] = tmpColor.g;
       colors[vi * 3 + 2] = tmpColor.b;
@@ -103,7 +104,10 @@ export function createTerrain(ctx) {
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  // Biome albedo, not vertex colour: the material used to multiply the detail
+  // texture *and* this average albedo, which darkened every channel twice and
+  // left the grass muddy. The shader now cross-fades between the two instead.
+  geo.setAttribute('aBiome', new THREE.BufferAttribute(colors, 3));
   geo.setAttribute('aSplat', new THREE.BufferAttribute(splat, 4));
   geo.setAttribute('aSplat2', new THREE.BufferAttribute(splat2, 2));
   geo.setAttribute('aJit', new THREE.BufferAttribute(jitter, 2));
@@ -120,12 +124,13 @@ export function createTerrain(ctx) {
     texDetailNormal: { value: tex.grass.normalMap },
     texMacro: { value: tex.dryGrass.map },
     uTile: { value: new THREE.Vector4(TILE.grass, TILE.sand, TILE.rock, TILE.snow) },
-    uDetailFade: { value: new THREE.Vector2(150, 400) },
+    uDetailFade: { value: new THREE.Vector2(260, 950) },
+    uRockTint: { value: AVG.rock.clone() },
+    uWaterLevel: { value: 0 },
   };
 
   const mat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
-    vertexColors: true,
     roughness: 0.95,
     metalness: 0.0,
     dithering: true,
@@ -138,16 +143,21 @@ export function createTerrain(ctx) {
         attribute vec4 aSplat;
         attribute vec2 aSplat2;
         attribute vec2 aJit;
+        attribute vec3 aBiome;
         varying vec4 vSplat;
         varying vec2 vSplat2;
         varying vec2 vJit;
         varying vec3 vTerrainW;
+        varying vec3 vBiome;
+        varying vec3 vTerrainN;
       `)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         vSplat = aSplat;
         vSplat2 = aSplat2;
         vJit = aJit;
         vTerrainW = (modelMatrix * vec4(transformed, 1.0)).xyz;
+        vBiome = aBiome;
+        vTerrainN = normalize(mat3(modelMatrix) * objectNormal);
       `);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
@@ -155,6 +165,8 @@ export function createTerrain(ctx) {
         varying vec2 vSplat2;
         varying vec2 vJit;
         varying vec3 vTerrainW;
+        varying vec3 vBiome;
+        varying vec3 vTerrainN;
         uniform sampler2D texGrass;
         uniform sampler2D texSand;
         uniform sampler2D texRock;
@@ -164,6 +176,8 @@ export function createTerrain(ctx) {
         uniform sampler2D texMacro;
         uniform vec4 uTile;
         uniform vec2 uDetailFade;
+        uniform vec3 uRockTint;
+        uniform float uWaterLevel;
       `)
       .replace('#include <map_fragment>', `
         vec2 wxz = vTerrainW.xz + vJit;
@@ -173,17 +187,45 @@ export function createTerrain(ctx) {
         vec3 cN = texture2D(texSnow,  wxz / uTile.w).rgb;
         vec3 cD = texture2D(texDirt,  wxz / 5.0).rgb;
         float wSum = vSplat.x + vSplat.y + vSplat.z + vSplat.w + 0.0001;
-        vec3 blended = (cG * vSplat.x + cS * vSplat.y + cR * vSplat.z + cN * vSplat.w + cD * vSplat2.x * 0.6) / wSum;
-        // macro layer: kills the repetition and paints dry patches
-        vec3 macro = texture2D(texMacro, vTerrainW.xz / 26.0).rgb;
-        float macroL = dot(macro, vec3(0.333));
-        blended *= 0.86 + macroL * 0.34;
-        float dry = smoothstep(0.52, 0.78, macro.g + (vSplat2.y - 0.5) * 0.25);
-        blended = mix(blended, blended * vec3(1.16, 1.04, 0.72), dry * 0.45 * vSplat.x);
-        // distance fade to vertex colour (kills shimmer at range)
+        vec3 detail = (cG * vSplat.x + cS * vSplat.y + cR * vSplat.z + cN * vSplat.w + cD * vSplat2.x * 0.6) / wSum;
+
+        // Two macro octaves: the 26 m one paints dry patches, the 137 m one
+        // breaks up the repetition of the first. Neither may darken the ground
+        // (that produced the blotchy hillsides), so they only shift hue.
+        vec3 macroA = texture2D(texMacro, vTerrainW.xz / 26.0).rgb;
+        vec3 macroB = texture2D(texMacro, vTerrainW.xz / 137.0 + vec2(0.37, 0.11)).rgb;
+        float mA = dot(macroA, vec3(0.333));
+        float mB = dot(macroB, vec3(0.333));
+        float dry = smoothstep(0.46, 0.78, mB * 0.62 + mA * 0.38);
+        vec3 dryTint = vec3(1.24, 1.06, 0.60);
+        detail = mix(detail, detail * dryTint, dry * 0.60);
+
+        // Biome albedo carries the far field. It gets the same treatment so the
+        // cross-fade between them does not shift colour.
+        vec3 biome = vBiome * (0.93 + (mB - 0.5) * 0.20);
+        biome = mix(biome, biome * dryTint, dry * 0.55);
+
+        // Slope overrides the splat: steep faces are bare rock and scree no
+        // matter what the biome weights say, which is what stops grass from
+        // climbing vertical cliff faces.
+        float slope = 1.0 - clamp(vTerrainN.y, 0.0, 1.0);
+        float rocky = smoothstep(0.34, 0.66, slope);
+        detail = mix(detail, mix(cR, cD, 0.30), rocky * 0.80);
+        biome = mix(biome, uRockTint * 0.92, rocky * 0.70);
+
+        // Near: texture detail. Far: biome albedo. Cross-fade instead of
+        // multiplying, which is what used to double-darken every channel.
         float dCam = distance(vTerrainW, cameraPosition);
         float fade = 1.0 - smoothstep(uDetailFade.x, uDetailFade.y, dCam);
-        diffuseColor.rgb *= mix(vec3(1.0), blended * 1.55, fade);
+        vec3 albedo = mix(biome, detail, fade);
+
+        // Wet sand and a soft foam line at the waterline. Only the sea sits at
+        // uWaterLevel; lakes and the river have their own surface heights and
+        // are left alone.
+        float wet = 1.0 - smoothstep(0.30, 2.60, vTerrainW.y - uWaterLevel);
+        albedo = mix(albedo, albedo * vec3(0.62, 0.60, 0.57), wet * 0.80);
+
+        diffuseColor.rgb *= albedo;
       `)
       .replace('#include <normal_fragment_maps>', `
         {
@@ -194,8 +236,9 @@ export function createTerrain(ctx) {
         }
       `)
       .replace('#include <roughnessmap_fragment>', `
-        float roughnessFactor = roughness;
-        roughnessFactor = mix(0.94, 0.78 + 0.16 * vSplat.z, diffuseColor.b * 0.25 + 0.1);
+        float slopeR = 1.0 - clamp(vTerrainN.y, 0.0, 1.0);
+        float rockyR = smoothstep(0.34, 0.66, slopeR);
+        float roughnessFactor = clamp(0.80 + 0.16 * (1.0 - rockyR) - 0.05 * vSplat.y + 0.06 * vSplat.w, 0.62, 1.0);
       `);
   };
 

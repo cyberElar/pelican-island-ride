@@ -14,7 +14,11 @@ import { QUALITY_PRESETS } from '../../src/core/settings.js';
 import { Rng } from '../../src/core/utils.js';
 
 const SEED = 20261014;
-const BUILD_BUDGET_MS = 6000;
+// Generous on purpose: measured builds land around 6-15 s depending on machine
+// load and cold caches, and CI runners are slower than a local desktop. The
+// assertion is here to catch order-of-magnitude regressions (the module used to
+// build in ~1 s before the dense-vegetation pass), not to benchmark the host.
+const BUILD_BUDGET_MS = 20000;
 const UPDATE_BUDGET_MS = 250;
 const UPDATE_CALLS = 200;
 const MATRIX_SAMPLES = 500;
@@ -73,8 +77,8 @@ console.log(
   `meshes=${meshes.length}  variants=${stats.variants}  colliders=${veg.treeColliders.length}`
 );
 
-if (!(stats.trees > 800)) throw new Error(`stats.trees too low: ${stats.trees}`);
-if (!(stats.grass > 20000)) throw new Error(`stats.grass too low: ${stats.grass}`);
+if (!(stats.trees >= 8000)) throw new Error(`stats.trees too low: ${stats.trees}`);
+if (!(stats.grass > 450000)) throw new Error(`stats.grass too low: ${stats.grass}`);
 if (!(stats.flowers > 4000)) throw new Error(`stats.flowers too low: ${stats.flowers}`);
 if (!(stats.rocks > 200)) throw new Error(`stats.rocks too low: ${stats.rocks}`);
 if (!(stats.bushes > 200)) throw new Error(`stats.bushes too low: ${stats.bushes}`);
@@ -95,6 +99,18 @@ for (const id of expectedSpecies) {
   if (count < 50) throw new Error(`species "${id}" only has ${count} instances`);
 }
 console.log('species:', expectedSpecies.map((id) => `${id}=${perSpecies.get(id)}`).join(' '));
+
+const forestTrees = meshes.filter(m => m.userData.kind === 'tree' &&
+  (m.userData.species === 'pine' || m.userData.species === 'oak')).reduce((n, m) => n + m.count, 0);
+if (forestTrees < 6000) throw new Error(`forest canopy too sparse: ${forestTrees}`);
+for (const kind of ['fern', 'mushroom', 'fallenLog']) {
+  const accents = meshes.filter(m => m.userData.kind === kind);
+  if (!accents.length || accents.reduce((n, m) => n + m.count, 0) < 100) throw new Error(`missing understory: ${kind}`);
+  if (accents.some(m => m.castShadow)) throw new Error(`understory casts shadows: ${kind}`);
+}
+const farTrees = meshes.filter(m => m.userData.kind === 'tree' && m.userData.shadowTier === 'none');
+if (!farTrees.length || farTrees.some(m => m.castShadow)) throw new Error('distant tree shadow gate failed');
+console.log(`forest canopy: ${forestTrees}; distant trees do not cast shadows`);
 
 // --- instance matrices ---------------------------------------------------
 

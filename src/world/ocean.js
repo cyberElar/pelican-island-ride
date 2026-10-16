@@ -16,6 +16,8 @@ function waterVertexShader({ lake, river }) {
     uniform vec4 uWaves[${WAVE_COUNT}];   // dirX, dirZ, amplitude, wavelength
     uniform float uAmpScale;
     uniform float uWaterLevel;
+    uniform sampler2D uHeightTex;
+    uniform vec3 uHeightInfo;   // halfWorld, 1/worldSize, unused
     attribute float aWaterY;   // per-vertex water surface height (river rises)
     varying vec3 vWorld;
     varying vec3 vNormal;
@@ -51,12 +53,26 @@ function waterVertexShader({ lake, river }) {
     void main() {
       vec4 wp = modelMatrix * vec4(position, 1.0);
       vec3 disp, nrm;
-      // Damp the swell with distance: at grazing angles far waves alias into bands.
+      // Damp the swell with distance. The detail plane only reaches ~900 m, so
+      // the waves have to be gone well before its edge - otherwise the seam
+      // with the flat far plane shows. (Long swells at range are handled in the
+      // fragment shader, where the pixel footprint is known.)
       float camDist = distance(wp.xz, cameraPosition.xz);
-      float ampFade = 1.0 - smoothstep(450.0, 2400.0, camDist);
+      float ampFade = 1.0 - smoothstep(240.0, 760.0, camDist);
+      // Shallow-water damping. Without it a 1.7 m swell rides straight up the
+      // beach and paints water (and foam) over dry land, which is what produced
+      // the floating white blobs on the shoreline.
+      vec2 huv = (wp.xz + uHeightInfo.x) * uHeightInfo.y;
+      float terrainH = texture2D(uHeightTex, huv).r;
+      float shoreDepth = max(0.0, aWaterY - terrainH);
+      float shoal = mix(0.12, 1.0, smoothstep(0.0, 5.0, shoreDepth));
       gerstner(wp.xz, disp, nrm);
-      disp *= mix(0.35, 1.0, ampFade);
+      // ampFade must reach exactly 0: a flat far plane is aliasing-free, whereas even
+      // a third of the amplitude sampled at 150 m per quad turned the horizon
+      // into hard horizontal bands.
+      disp *= ampFade * shoal;
       wp.xyz += disp;
+      nrm = normalize(mix(vec3(0.0, 1.0, 0.0), nrm, shoal));
       vec4 mvPosition = viewMatrix * wp;
       vWorld = wp.xyz;
       vNormal = nrm;
@@ -90,6 +106,13 @@ function waterFragmentShader({ lake, river }) {
       // every river fragment read as a 0 m shoreline (all foam, pure white).
       float depth = max(0.0, vWaterY - terrainH);
 
+      // Screen-space footprint of one pixel measured in metres of water. Cheap
+      // and exact: it makes every normal detail scale itself down before it can
+      // alias, which is what produced the banded horizon on grazing views.
+      float px = max(fwidth(vWorld.x), fwidth(vWorld.z));
+      float rippleFade = 1.0 - smoothstep(0.05, 0.85, px);
+      float swellFade = 1.0 - smoothstep(1.6, 22.0, px);
+
       // --- normal: gerstner + two scrolling ripple layers ---
       vec3 N = normalize(vNormal);
       vec2 uv1 = vWorld.xz * 0.020 + vec2(uTime * 0.011, uTime * 0.007);
@@ -97,9 +120,18 @@ function waterFragmentShader({ lake, river }) {
       vec3 r1 = texture2D(uRippleTex, uv1).xyz * 2.0 - 1.0;
       vec3 r2 = texture2D(uRippleTex, uv2).xyz * 2.0 - 1.0;
       float rScale = mix(0.35, 0.10, uIsLake);
-      float dCam = distance(vWorld, cameraPosition);
-      float rippleFade = 1.0 - smoothstep(260.0, 1500.0, dCam);
       N = normalize(N + vec3(r1.x + r2.x * 0.6, 0.0, r1.z + r2.z * 0.6) * rScale * rippleFade);
+      // Beyond the detail plane the geometry is flat on purpose, so the only
+      // thing that may add shape there is mip-filtered texture: sampling a
+      // normal map with its own screen derivatives makes the GPU pick a
+      // prefiltered mip, and averaged normal maps fade to flat instead of
+      // aliasing into bands. Analytic sines were tried first and read as
+      // obvious stripes on the horizon.
+      {
+        vec2 uvS = vWorld.xz * 0.0016;
+        vec3 rs = textureGrad(uRippleTex, uvS, dFdx(uvS) * 2.2, dFdy(uvS) * 2.2).xyz * 2.0 - 1.0;
+        N = normalize(N + vec3(rs.x, 0.0, rs.z) * 0.22 * swellFade);
+      }
 
       vec3 V = normalize(cameraPosition - vWorld);
       float fres = 0.02 + 0.90 * pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 5.0);
@@ -110,11 +142,16 @@ function waterFragmentShader({ lake, river }) {
       // A mirror-perfect sea reads as blown-out white under a bright sky;
       // keep some of the water body in the reflection term.
       skyCol *= 0.72;
-      float sunSpec = pow(max(dot(R, uSunDir), 0.0), 900.0) * 6.0
-                    + pow(max(dot(R, uSunDir), 0.0), 60.0) * 0.35;
+      // The sharp lobe is a sub-pixel highlight, so it may only exist where the
+      // footprint is small; the wide lobe is what carries the sun path at range.
+      float sd2 = max(dot(R, uSunDir), 0.0);
+      // A 6x sharp lobe plus bloom turned the sun path into a blown-out white
+      // shelf. Real glitter is bright but it still reads as water.
+      float sunSpec = pow(sd2, 900.0) * 2.1 * rippleFade
+                    + pow(sd2, 60.0) * 0.22 * mix(0.35, 1.0, swellFade);
       // glitter
       float glitter = texture2D(uRippleTex, vWorld.xz * 0.35 + vec2(uTime * 0.05)).x;
-      sunSpec *= 0.6 + glitter * 1.4;
+      sunSpec *= 0.6 + glitter * 1.4 * rippleFade;
       skyCol += uSunColor * sunSpec * clamp(uSunIntensity * 0.5, 0.1, 2.0);
 
       // --- water body colour ---
@@ -129,19 +166,28 @@ function waterFragmentShader({ lake, river }) {
 
       // --- foam ---
       // rivers are shallow by construction - do not read them as surf beaches
-      float shore = (1.0 - smoothstep(0.25, 2.6, depth)) * (1.0 - uIsRiver * 0.92);
+      // The height texture is 7.8 m per texel at the high preset, so a narrow
+      // band is the honest choice: a wide one turns into a blown-out white
+      // shelf tens of metres offshore.
+      float shore = (1.0 - smoothstep(0.05, 1.15, depth)) * (1.0 - uIsRiver * 0.92);
       vec2 fuv = vWorld.xz * 0.09 + vec2(uTime * 0.02, -uTime * 0.016);
       float fn = texture2D(uRippleTex, fuv).x * 0.6 + texture2D(uRippleTex, fuv * 2.7 - 3.1).x * 0.4;
       // lace the shoreline with noise, push the foam line back and forth
       float wobble = (fn - 0.5) * 1.6;
       float foamBand = smoothstep(0.9, 0.0, depth + wobble * 1.1) * shore;
       float crestFoam = smoothstep(0.55, 1.15, vCrest * uAmpScale * 1.6) * 0.55;
+      crestFoam *= mix(1.0, 0.45, 1.0 - rippleFade) * mix(1.0, 0.5, 1.0 - swellFade);
       float foam = clamp(foamBand * 1.2 + crestFoam * 0.5, 0.0, 1.0) * uFoamStrength;
       foam *= mix(0.32, 1.0, 1.0 - uNight * 0.62);
       col = mix(col, uFoamColor, foam);
 
       // river: subtle whitewater
       col = mix(col, uFoamColor * 0.92, uIsRiver * smoothstep(0.35, 0.9, fn) * 0.35);
+
+      // Distant water sits under a lot of atmosphere: pull it toward the sky so
+      // the horizon line dissolves instead of ending in a hard edge.
+      float horizonFade = smoothstep(900.0, 6500.0, distance(vWorld, cameraPosition));
+      col = mix(col, mix(uSkyHorizon, uSkyZenith, 0.25), horizonFade * 0.72);
 
       gl_FragColor = vec4(col, 1.0);
       #include <fog_fragment>
@@ -182,9 +228,9 @@ export function createOcean(ctx) {
       uSunColor: { value: new THREE.Color('#fff4e2') },
       uSkyZenith: { value: new THREE.Color('#2f6fd0') },
       uSkyHorizon: { value: new THREE.Color('#c3dcf2') },
-      uDeepColor: { value: isLake ? new THREE.Color('#123a44') : new THREE.Color('#0b3c56') },
-      uShallowColor: { value: isLake ? new THREE.Color('#3a8177') : new THREE.Color('#2f9aa2') },
-      uFoamColor: { value: new THREE.Color('#f2fbfb') },
+      uDeepColor: { value: isLake ? new THREE.Color('#0e3038') : new THREE.Color('#08344c') },
+      uShallowColor: { value: isLake ? new THREE.Color('#2f6f68') : new THREE.Color('#2a8496') },
+      uFoamColor: { value: new THREE.Color('#e6f2f4') },
       uIsLake: { value: isLake ? 1 : 0 },
       uIsRiver: { value: isRiver ? 1 : 0 },
       uSunIntensity: { value: 3 },
@@ -213,13 +259,36 @@ export function createOcean(ctx) {
     return mat;
   }
 
-  // --- sea ---
+  // --- sea ---------------------------------------------------------------
+  // Two coplanar sheets. The far one is deliberately flat and cheap (it only
+  // has to hold the reflection, the sun path and the horizon haze); the near
+  // one rides with the camera with ~8 m quads so the 4.6-42 m Gerstner waves
+  // actually exist as geometry. A single 150 m-per-quad plane could never
+  // represent them, which is what the banded horizon was.
+  const NEAR_HALF = 900;
+  const nearSeg = Math.max(96, Math.min(288, Math.round(seg * 1.4)));
+  const NEAR_STEP = (NEAR_HALF * 2) / nearSeg;
+
+  const seaNearGeo = new THREE.PlaneGeometry(NEAR_HALF * 2, NEAR_HALF * 2, nearSeg, nearSeg);
+  seaNearGeo.setAttribute('aWaterY', new THREE.Float32BufferAttribute(new Float32Array(seaNearGeo.attributes.position.count), 1));
+  const seaNearMat = makeMaterial({ waterLevel: 0, isLake: 0, isRiver: 0, ampScale: 1.0, foam: 1.0 });
+  const seaNear = new THREE.Mesh(seaNearGeo, seaNearMat);
+  seaNear.rotation.x = -Math.PI / 2;
+  seaNear.position.y = 0;
+  seaNear.receiveShadow = false;
+  seaNear.renderOrder = 1;
+  seaNear.frustumCulled = false;
+  seaNear.name = 'seaNear';
+  group.add(seaNear);
+
   const seaGeo = new THREE.PlaneGeometry(R * 2, R * 2, seg, seg);
   seaGeo.setAttribute('aWaterY', new THREE.Float32BufferAttribute(new Float32Array(seaGeo.attributes.position.count), 1));
-  const seaMat = makeMaterial({ waterLevel: 0, isLake: 0, isRiver: 0, ampScale: 1.0, foam: 1.0 });
+  const seaMat = makeMaterial({ waterLevel: 0, isLake: 0, isRiver: 0, ampScale: 0.0, foam: 1.0 });
   const sea = new THREE.Mesh(seaGeo, seaMat);
   sea.rotation.x = -Math.PI / 2;
-  sea.position.y = 0;
+  // A hair below the detail sheet so the two never z-fight; at these
+  // distances the offset is invisible and the seam colours match exactly.
+  sea.position.y = -0.30;
   sea.receiveShadow = false;
   sea.renderOrder = 1;
   group.add(sea);
@@ -320,9 +389,18 @@ export function createOcean(ctx) {
 
   return {
     group,
-    materials: { sea: seaMat, lake: lakeMat, river: riverMat },
+    materials: { sea: seaMat, seaNear: seaNearMat, lake: lakeMat, river: riverMat },
     splash,
     update(dt, state) {
+      // Ride along with the camera, snapped to the quad grid: the waves are
+      // evaluated from world XZ, so snapping keeps the sample positions on the
+      // world grid and the surface does not swim as the player moves.
+      const cam = engine?.camera?.position;
+      if (cam) {
+        seaNear.position.x = Math.round(cam.x / NEAR_STEP) * NEAR_STEP;
+        seaNear.position.z = Math.round(cam.z / NEAR_STEP) * NEAR_STEP;
+      }
+      updateUniforms(seaNearMat, dt, state);
       updateUniforms(seaMat, dt, state);
       updateUniforms(lakeMat, dt, state);
       updateUniforms(riverMat, dt, state);

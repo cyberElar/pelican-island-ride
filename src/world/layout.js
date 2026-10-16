@@ -88,7 +88,12 @@ export function createLayout(seed = GAME.defaultSeed) {
     let h;
     if (u >= 1) {
       const s = clamp01((u - 1) / 0.55);
-      h = -(5 + 95 * smootherstep(0, 1, s));
+      // The sea floor has to leave the waterline at 0, not at -5 m: the old
+      // constant put a 5 m step exactly at the shoreline, which the terrain
+      // mesh rendered as a vertical wall of grass with no beach at all.
+      // A continuous, gentler shelf also gives the water shader a real depth
+      // gradient to paint the shallows with.
+      h = -108 * smootherstep(0, 1, s);
       h += 6 * nDetail.fbm(x * 0.006, z * 0.006, 2) * s;   // sea floor texture
     } else {
       // 1 deep inland -> 0 at the waterline (u = 1)
