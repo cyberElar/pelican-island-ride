@@ -655,7 +655,9 @@ export async function createVegetation(ctx) {
     if (kind === 'bramble') {
       const blobs = r.irange(5, 8);
       for (let i = 0; i < blobs; i++) {
-        const geo = new THREE.IcosahedronGeometry(r.range(0.2, 0.38), 0);
+        // An octahedron (8 triangles) reads the same as an icosahedron (20) at
+        // the 0.2-0.38 m this blob is, and the bramble has 5-8 of them.
+        const geo = new THREE.OctahedronGeometry(r.range(0.2, 0.38), 0);
         addPart(parts, geo, 0, trs(r.range(-0.7, 0.7), r.range(0.22, 0.85), r.range(-0.7, 0.7),
           r.range(0, 3), r.range(0, 3), r.range(0, 3), 1, 0.8, 1));
         geo.dispose();
@@ -664,7 +666,7 @@ export async function createVegetation(ctx) {
       for (let i = 0; i < twigs; i++) {
         const a = r.float() * TAU;
         const len = r.range(0.9, 1.4);
-        const geo = new THREE.CylinderGeometry(0.02, 0.035, len, 4);
+        const geo = new THREE.CylinderGeometry(0.02, 0.035, len, 4, 1, true);
         addPart(parts, geo, 0, trs(Math.cos(a) * 0.2, len * 0.42, Math.sin(a) * 0.2,
           Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5));
         geo.dispose();
@@ -682,12 +684,14 @@ export async function createVegetation(ctx) {
       addPart(parts, geo, 0, trs(cx, cy, cz, r.range(0, 3), r.range(0, 3), r.range(0, 3), 1.2, 0.9, 1.2));
       geo.dispose();
     }
-    const dots = r.irange(10, 18);
+    // Blossoms: they are 5 cm across, so past arm's length only the silhouette
+    // matters - eight cheap octahedra instead of ten to eighteen icosahedra.
+    const dots = r.irange(6, 10);
     for (let i = 0; i < dots; i++) {
       const c = centers[r.irange(0, centers.length - 1)];
       const a = r.float() * TAU;
       const dr = c.radius * r.range(1.0, 1.12);
-      const geo = new THREE.IcosahedronGeometry(r.range(0.035, 0.055), 0);
+      const geo = new THREE.OctahedronGeometry(r.range(0.04, 0.06), 0);
       addPart(parts, geo, 1, trs(
         c.cx + Math.cos(a) * dr, c.cy + r.range(-0.6, 0.9) * dr * 0.5, c.cz + Math.sin(a) * dr,
         r.range(0, 3), r.range(0, 3), r.range(0, 3)

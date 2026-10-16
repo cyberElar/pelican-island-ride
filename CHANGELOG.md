@@ -9,6 +9,12 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Bush geometry: the bramble's small blobs and the gorse's 5 cm blossoms are
+  octahedra instead of icosahedra, the gorse grows 6-10 blossoms instead of
+  10-18 and the twigs are open-ended. Bush triangles at the village camera drop
+  from 0.96 M to 0.45 M with no visible change at a metre or more; the high
+  preset's worst camera is now 3.91 M triangles (was 4.41 M) and the medium
+  preset's 2.65 M (was 3.01 M). All four matrices re-recorded.
 - Landmarks merge across pieces: everything static in world space collapses
   into one mesh per material (`src/core/merge-static.js`, moved there from
   `src/character/` so both content modules can share it). The village camera

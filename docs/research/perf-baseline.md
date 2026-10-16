@@ -45,29 +45,30 @@ Raw per-view data: `docs/research/data/matrix-{ultra,high,medium,low}.json`.
 
 | Tier | Max draw calls | Max triangles | Max GPU ms/frame | Call budget | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| ultra | 472 | 6.11 M | 4.65 | ≤1500 (hard 2000) | pass |
-| high | 454 | 4.41 M | 3.59 | ≤1500 (hard 2000) | pass |
-| medium | 445 | 3.01 M | 2.59 | ≤900 | pass |
-| low | 364 | 1.48 M | 1.58 | ≤400 (mobile ≤300) | pass, above the mobile aspiration |
+| ultra | 471 | 5.58 M | 4.47 | ≤1500 (hard 2000) | pass |
+| high | 460 | 3.91 M | 3.52 | ≤1500 (hard 2000) | pass |
+| medium | 447 | 2.65 M | 2.43 | ≤900 | pass |
+| low | 362 | 1.37 M | 1.69 | ≤400 (mobile ≤300) | pass, above the mobile aspiration |
 
-Triangle budgets from `quality-benchmarks.md` (D4): high ≤5 M — pass (4.41 M);
-medium ≤2.5 M — 3.01 M, still above the aspiration; mobile ≤1.5 M — pass
-(1.48 M, essentially no headroom). Both numbers include the shadow-map pass.
+Triangle budgets from `quality-benchmarks.md` (D4): high ≤5 M — pass (3.91 M,
+real headroom now); medium ≤2.5 M — 2.65 M, 6 % above the aspiration and
+closing; mobile ≤1.5 M — pass (1.37 M). Both numbers include the shadow-map
+pass.
 
 ## high preset, per view
 
 | View | Calls | Triangles | GPU ms |
 | --- | --- | --- | --- |
-| gate-road | 378 | 2.73 M | 2.43 |
-| village | 442 | 4.21 M | 3.48 |
-| harbor | 299 | 2.16 M | 2.02 |
-| farm | 373 | 3.62 M | 2.91 |
-| windmill | 411 | 3.95 M | 3.27 |
-| bridge | 454 | 4.41 M | 3.59 |
-| waterfall | 370 | 3.73 M | 3.01 |
-| cliffs-sunset | 301 | 3.06 M | 2.67 |
-| peak-noon | 307 | 3.07 M | 2.41 |
-| lighthouse-night | 356 | 2.59 M | 2.33 |
+| gate-road | 384 | 2.23 M | 2.40 |
+| village | 447 | 3.62 M | 3.11 |
+| harbor | 301 | 1.64 M | 1.85 |
+| farm | 377 | 3.12 M | 2.75 |
+| windmill | 417 | 3.44 M | 3.05 |
+| bridge | 460 | 3.91 M | 3.52 |
+| waterfall | 376 | 3.22 M | 3.15 |
+| cliffs-sunset | 305 | 2.56 M | 2.48 |
+| peak-noon | 313 | 2.61 M | 2.53 |
+| lighthouse-night | 358 | 2.04 M | 2.17 |
 
 ## What the optimisation passes removed
 
@@ -103,7 +104,18 @@ the village view from **219 to 5** for the same triangles.
   always intersects the shadow frustum (+8 shadow-pass calls). Net per frame:
   ~18 main-pass calls fewer, ~10 calls fewer overall.
 
+`buildBushVariant()` also stopped over-tessellating: the bramble's 0.2–0.38 m
+blobs and the gorse's 5 cm blossoms are octahedra (8 triangles) instead of
+icosahedra (20), the gorse grows 6–10 blossoms instead of 10–18, and the
+bramble twigs are open-ended. Bush triangles at the village camera fell from
+0.96 M to **0.45 M** (−53 %) with no visible change at a metre or more; the
+medium preset's worst camera dropped from 3.01 M to 2.65 M triangles with it.
+
 ## Where the remaining cost is (village, high)
+
+Composition from the split probe (it re-snapshots after toggling module
+visibility, so its absolute totals run a few percent above the matrix table;
+the shares are what matter here).
 
 | Item | Draw calls | Triangles |
 | --- | --- | --- |
@@ -113,20 +125,19 @@ the village view from **219 to 5** for the same triangles.
 | shadow-map pass | 65 | 0.68 M |
 | landmarks | 63 | 0.04 M |
 | vegetation — flowers / rocks / reeds (44 meshes) | 37 | 0.67 M |
-| vegetation — bushes (9 meshes, 2 600 instances) | 24 | 0.96 M |
+| vegetation — bushes (9 meshes, 2 600 instances) | 24 | 0.45 M |
 | vegetation — grass (78 chunks, 23 drawn) | 23 | 0.99 M |
 | terrain / ocean | 11 | 0.51 M |
 | animals / collectibles / sky | 9 | 0.01 M |
 
 Next candidates, in order of value per unit of risk:
 
-1. **bushes**: 0.96 M triangles in 24 calls — the bush variants are dense
-   (≈370 triangles per instance for a 1 m plant), and the gorse variant spends
-   10-18 icosahedra on blossoms that are sub-pixel past a few metres.
-2. **trees**: 1.26 M triangles in 116 calls — the biggest remaining block, but
-   trees are large and visible, so impostors or a geometry LOD need care.
-3. **medium triangles** (3.01 M) sit above the 2.5 M aspiration; the same two
-   items cover it.
+1. **trees**: 1.26 M triangles in 116 calls — now the biggest single block.
+   Trees are large and visible, so impostors or a geometry LOD need care.
+2. **medium triangles** (2.65 M) are 6 % above the 2.5 M aspiration; the tree
+   work or another grass-density trim at that preset would close it.
+3. **grass** (0.99 M) — the distance cull already removed 62 % of it; the next
+   lever would be a second, sparser far-field variant instead of a binary cut.
 
 Two notes on how this maps back to the audit's own wording
 (`quality-benchmarks.md` P1 #4):
@@ -135,7 +146,7 @@ Two notes on how this maps back to the audit's own wording
   cost 0.01–0.04 M triangles per view — they are already merged geometry with
   shared materials. The polygons are in the vegetation (grass, trees, bushes),
   so the LOD went into the ground cover, where the budget pressure actually was.
-- Its "mobile" budget row maps to this matrix's **low** tier (364 calls,
-  1.48 M triangles) and to `smoke-ci.mjs --mobile`, which runs the phone-sized
+- Its "mobile" budget row maps to this matrix's **low** tier (362 calls,
+  1.37 M triangles) and to `smoke-ci.mjs --mobile`, which runs the phone-sized
   viewport and touch input end to end. Real-device frame rates are still
   unmeasured — see the gaps in `browser-matrix.md`.
