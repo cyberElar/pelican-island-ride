@@ -1,5 +1,7 @@
 # 提鹅鹏 · 单车环岛 · A Pelican's Island Ride
 
+[![CI](https://github.com/cyberElar/pelican-island-ride/actions/workflows/ci.yml/badge.svg)](https://github.com/cyberElar/pelican-island-ride/actions/workflows/ci.yml)
+
 > A cinematic three.js cycling showcase: a pelican rides a vintage cruiser
 > around a large, richly detailed island.
 >

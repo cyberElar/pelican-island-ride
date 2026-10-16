@@ -1,5 +1,7 @@
 # 提鹅鹏 · 单车环岛
 
+[![CI](https://github.com/cyberElar/pelican-island-ride/actions/workflows/ci.yml/badge.svg)](https://github.com/cyberElar/pelican-island-ride/actions/workflows/ci.yml)
+
 > 一只鹈鹕骑着一辆复古单车，环游一座程序化生成的电影感小岛。
 >
 > **全部内容都是代码生成的**：地形、建筑、树木、动物、贴图、音乐与音效均在运行时

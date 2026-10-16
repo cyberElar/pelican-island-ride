@@ -106,6 +106,32 @@ Use the issue templates. The most useful reports include the browser, the
 quality preset and the seed from the URL, since the island is procedurally
 generated and a seed makes the report reproducible.
 
+## Releasing
+
+The repository root is the published site and `game.js` / `styles.css` are
+committed on purpose, so a release is: everything green, then three commands.
+
+```powershell
+npm ci
+npm test                        # 11 suites
+npm run smoke                   # browser smoke test on the built bundle
+npm run build:publish           # refresh game.js + styles.css, commit if stale
+
+git tag -a v1.0.0 -m "Pelican Island Ride v1.0.0"
+git push origin main --follow-tags
+gh release create v1.0.0 --title "Pelican Island Ride v1.0.0" --notes-file CHANGELOG.md \
+  screenshots/ride.gif screenshots/ride.jpg screenshots/village.jpg
+```
+
+The first tag is `v1.0.0`: it matches `package.json` and the CHANGELOG entry,
+and the README's release link only resolves once the tag exists.
+
+Before tagging: CI must be green on `main` (the badge above the README shows
+it), the `bundle-in-sync` job must pass, and `docs/research/lighthouse-baseline.md`
+plus `docs/research/perf-baseline.md` should carry the current numbers. Work
+that has not been pushed yet is not released — the tag goes on the pushed
+commit.
+
 ## Licence
 
 By contributing you agree that your work is released under the [MIT
