@@ -75,6 +75,12 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
   blocks for seconds. Lighthouse total blocking time fell from 4.9 s to 0.6 s
   (desktop) and 13.7 s to 6.4 s (mobile) with identical placement.
   Evidence: `docs/research/lighthouse-baseline.md`.
+- Ground-cover LOD: grass and flower chunks are culled beyond the preset draw
+  distance (700 / 1000 / 1300 / 1600 m) and flowers are batched over 2 km
+  blocks. The village camera at *high* drops from 629 to 549 draw calls and
+  from 6.43 M to 4.36 M triangles with the same look; the flower batches alone
+  went from 219 draw calls to 5. Evidence and the ten-camera matrix for all
+  four presets: `docs/research/perf-baseline.md`.
 - Denser vegetation (≈9 000 trees and ≈740 000 grass tufts at high) without new
   draw calls; off-road slopes stay deliberately lighter.
 - Seabreeze Village keeps 12-16 houses on every seed (unlucky seeds used to

@@ -240,7 +240,12 @@ Custom shader dome (Preetham-ish), cloud layer, stars+moon at night. Owns
 Instanced trees (pine/broadleaf/palm/cypress/birch), bushes, rock clusters,
 grass tufts (near-player GPU wind), flowers, reeds. Uses `layout.isClear` +
 `layout.pois.forest` etc. for placement. Wind uniforms shared in
-`vegetation.sharedUniforms`.
+`vegetation.sharedUniforms`. Ground cover is chunked on a 500 m grid; grass and
+flower chunks further than the preset's `chunkRange` (700 / 1000 / 1300 / 1600 m
+for low / medium / high / ultra) are skipped in `update()` (the terrain splat
+carries the colour at that range) and flowers are batched over 4x4 chunk blocks.
+`setChunkRange(metres)` overrides the range for tooling, `Infinity` disables the
+distance cull.
 
 ### 4.10 `world/props.js`
 

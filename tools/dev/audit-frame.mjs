@@ -19,6 +19,7 @@
  *   node tools/dev/audit-frame.mjs --quality high --json docs/research/data/frame-high.json
  *   node tools/dev/audit-frame.mjs --quality low  --json docs/research/data/frame-low.json
  *   node tools/dev/audit-frame.mjs --quality medium --width 1920 --height 1080
+ *   node tools/dev/audit-frame.mjs --quality high --views-only --json docs/research/data/matrix-high.json
  */
 
 import { chromium } from 'playwright-core';
@@ -42,6 +43,10 @@ const width = Number(arg('width', '1280'));
 const height = Number(arg('height', '720'));
 const jsonOut = arg('json', '');
 const tag = arg('tag', quality);
+// --views-only: skip the A/B sections and just record the ten fixed cameras
+// (draw calls, triangles, GPU ms). This is the tier matrix that goes into
+// docs/research/perf-baseline.md.
+const viewsOnly = process.argv.includes('--views-only');
 
 const EDGE = [
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
@@ -339,6 +344,7 @@ const results = {
   ],
 };
 
+if (!viewsOnly) {
 const setPasses = (patch) => page.evaluate((p) => {
   const passes = window.__pelican.post.passes;
   for (const [k, v] of Object.entries(p)) if (passes[k]) passes[k].enabled = v;
@@ -472,14 +478,22 @@ results.matrixFreeze = await abMeasure(
 );
 results.matrixWorld.frozenObjects = frozenCount;
 results.matrixFreeze.label = `matrixAutoUpdate=false on ${frozenCount} static objects`;
+}
 
-// --- view scenarios ----------------------------------------------------------
+// The ten fixed cameras of the draw-call / frame-time matrix. Every entry is
+// anchored to a POI and a time of day, so the same spots can be re-recorded on
+// any machine and compared with the budgets in docs/research/quality-benchmarks.md.
 const views = [
-  ['village', (P) => { const v = P.layout.pois.village.position; P.teleport(v.x + 34, v.z + 26, -2.2); }],
-  ['harbor', (P) => { const h = P.layout.pois.harbor.position; P.teleport(h.x - 55, h.z - 40, 0.9); }],
+  ['gate-road', (P) => { const s = P.layout.pois.spawn.position; P.setHour(17.15); P.teleport(s.x + 6, s.z + 10, 0.35); }],
+  ['village', (P) => { const v = P.layout.pois.village.position; P.setHour(16.4); P.teleport(v.x + 34, v.z + 26, -2.2); }],
+  ['harbor', (P) => { const h = P.layout.pois.harbor.position; P.setHour(15.8); P.teleport(h.x - 55, h.z - 40, 0.9); }],
+  ['farm', (P) => { const f = P.layout.pois.farm.position; P.setHour(11.6); P.teleport(f.x + 40, f.z + 30, -2.4); }],
+  ['windmill', (P) => { const w = P.layout.pois.windmill.position; P.setHour(13.2); P.teleport(w.x + 32, w.z + 28, -2.3); }],
+  ['bridge', (P) => { const b = P.layout.pois.bridge.position; P.setHour(10.4); P.teleport(b.x + 26, b.z + 22, -2.3); }],
+  ['waterfall', (P) => { const w = P.layout.pois.waterfall.position; P.setHour(9.2); P.teleport(w.x + 34, w.z + 24, -2.4); }],
+  ['cliffs-sunset', (P) => { const b = P.layout.pois.bench.position; P.setHour(18.35); P.teleport(b.x + 24, b.z + 18, -1.9); }],
   ['peak-noon', (P) => { const p = P.layout.pois.peak.position; P.setHour(12.2); P.teleport(p.x + 26, p.z + 26, -2.4); }],
   ['lighthouse-night', (P) => { const l = P.layout.pois.lighthouse.position; P.setHour(22.4); P.teleport(l.x - 45, l.z + 32, 0.6); }],
-  ['cliffs-sunset', (P) => { const b = P.layout.pois.bench.position; P.setHour(18.35); P.teleport(b.x + 24, b.z + 18, -1.9); }],
 ];
 for (const [name, fn] of views) {
   await page.evaluate((src) => {
@@ -489,7 +503,11 @@ for (const [name, fn] of views) {
     window.__settleCamera(240);
   }, fn.toString());
   await page.waitForTimeout(200);
-  results.configs.push(await measure(`view:${name}`, { frames: Math.min(frames, 40), warmup: 15 }));
+  const view = await measure(`view:${name}`, { frames: Math.min(frames, 40), warmup: 15 });
+  // one manual render per view with info.autoReset off: the draw-call count of
+  // exactly this camera, not the running average of the whole session
+  view.info = await page.evaluate(() => window.__snapshotInfo());
+  results.configs.push(view);
 }
 
 // --- module CPU costs --------------------------------------------------------
@@ -500,6 +518,25 @@ results.pageErrors = pageErrors;
 if (jsonOut) {
   await mkdir(path.dirname(path.resolve(jsonOut)), { recursive: true });
   await writeFile(path.resolve(jsonOut), JSON.stringify(results, null, 2));
+}
+
+if (viewsOnly) {
+  console.log(`\n## fixed-camera matrix (quality=${tag}, ${width}x${height}, seed=${seed})`);
+  console.log('  view              gpu ms   submit   calls    tris   points   lines  programs');
+  for (const v of results.configs) {
+    if (!v.label.startsWith('view:')) continue;
+    const i = v.info || {};
+    console.log(
+      `  ${v.label.replace('view:', '').padEnd(16)} ${String(v.gpuMs).padStart(6)}  `
+      + `${String(v.submit?.median ?? '-').padStart(6)}  ${String(i.calls ?? '-').padStart(5)}  `
+      + `${String(Math.round((i.triangles ?? 0) / 1000)).padStart(6)}k  `
+      + `${String(i.points ?? '-').padStart(6)}  ${String(i.lines ?? '-').padStart(6)}  ${String(i.programs ?? '-').padStart(8)}`
+    );
+  }
+  console.log(`  renderer.info (after the last view) ${JSON.stringify(results.rendererInfo)}`);
+  if (pageErrors.length) console.log('  page errors:', pageErrors.slice(0, 5));
+  await browser.close();
+  process.exit(0);
 }
 
 // --------------------------------------------------------------------- print

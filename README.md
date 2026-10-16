@@ -99,8 +99,10 @@ the preset manually, `?debug=1` shows an fps / frame-time / draw-call overlay.
   collectibles, events, audio. Each one is a factory returning
   `{ group, update(dt, state), setQuality? }`.
 - 488 geometries, 195 procedural textures, ~75 shader programs; the composite
-  frame runs ≈660–790 draw calls and 2.8–5.1 M triangles at the *high* preset,
-  depending on where you are (shadows and post-processing included).
+  frame runs ≈360–560 draw calls and 2.1–4.4 M triangles at the *high* preset,
+  depending on where you are (shadows and post-processing included). Ground
+  cover is culled by distance (1.3 km at high) and flowers are batched over
+  2 km blocks, so the far field costs draw calls it cannot pay for.
 - Full island build takes ~4–5 s at the *high* preset on a desktop CPU (up to
   ~13 s while the machine is busy or throttled), then streams at interactive
   frame rates; the loading screen reports progress and the console logs

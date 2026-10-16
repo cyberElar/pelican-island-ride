@@ -52,6 +52,10 @@ export const QUALITY_PRESETS = {
     oceanSegments: 96,
     cloudLayers: 1,
     viewDistance: 9000,
+    // Ground-cover draw distance in metres (grass + flower chunks). Chunks
+    // beyond it contribute sub-pixel tufts, so they are skipped - the terrain
+    // splat already carries their colour at that range.
+    chunkRange: 700,
     fogDensity: 0.00010,
   },
   medium: {
@@ -81,6 +85,7 @@ export const QUALITY_PRESETS = {
     oceanSegments: 128,
     cloudLayers: 2,
     viewDistance: 14000,
+    chunkRange: 1000,
     fogDensity: 0.000075,
   },
   high: {
@@ -110,6 +115,7 @@ export const QUALITY_PRESETS = {
     oceanSegments: 160,
     cloudLayers: 3,
     viewDistance: 18000,
+    chunkRange: 1300,
     fogDensity: 0.000058,
   },
   ultra: {
@@ -139,6 +145,7 @@ export const QUALITY_PRESETS = {
     oceanSegments: 200,
     cloudLayers: 3,
     viewDistance: 22000,
+    chunkRange: 1600,
     fogDensity: 0.00005,
   },
 };

@@ -13,7 +13,8 @@
  * inside layout.isClear() - which is exactly where wild trees belong.
  *
  * Deterministic: everything derives from new Rng('vegetation:' + layout.seed).
- * update() only writes wind uniforms - it never allocates.
+ * update() writes wind uniforms and toggles ground-cover chunk visibility by
+ * distance - it never allocates.
  *
  * See docs/SPEC.md sections 4.5 / 4.9 for the frozen contracts.
  */
@@ -269,6 +270,13 @@ export async function createVegetation(ctx) {
   const scaledMeshes = [];
   /** Meshes that may cast shadows, with the tier each one belongs to. */
   const shadowMeshes = [];
+  /**
+   * Ground-cover chunk meshes (grass, flowers) and the preset draw distance: a
+   * chunk further than `chunkRange` contributes sub-pixel tufts and is skipped
+   * in update() - the terrain splat already carries its colour out there.
+   */
+  const chunkedMeshes = [];
+  let chunkRange = 1300;
   const built = {};
 
   const stats = {
@@ -1070,6 +1078,11 @@ export async function createVegetation(ctx) {
     };
     group.add(mesh);
 
+    if (o.chunk) {
+      mesh.userData.chunkX = o.chunk.x;
+      mesh.userData.chunkZ = o.chunk.z;
+      chunkedMeshes.push(mesh);
+    }
     if (o.densityKey) scaledMeshes.push(mesh);
     if (tier !== 'none') shadowMeshes.push(mesh);
     return mesh;
@@ -1522,6 +1535,7 @@ export async function createVegetation(ctx) {
         if (!list.length) continue;
         makeInstanced(`grass:${ci}:${cj}`, GEO_GRASS, matGrass, list, {
           kind: 'grass', densityKey: 'grassDensity', tint: true,
+          chunk: { x: x0 + CHUNK_SIZE / 2, z: z0 + CHUNK_SIZE / 2 },
         });
         stats.grass += list.length;
         stats.grassChunks++;
@@ -1547,6 +1561,10 @@ export async function createVegetation(ctx) {
       return cumulative.length - 1;
     };
 
+    // Flowers merge a FLOWER_MERGE x FLOWER_MERGE block of 500 m chunks into
+    // one mesh: measured at the village camera, the per-chunk meshes cost ~200
+    // draw calls for ~0.16 M triangles, which is pure overhead.
+    const FLOWER_MERGE = 4;
     const buckets = new Map();
     for (let cj = 0; cj < CHUNK_GRID; cj++) {
       await slice();
@@ -1572,7 +1590,7 @@ export async function createVegetation(ctx) {
 
           const kindIndex = pickKind(rng.float());
           const kind = FLOWER_KINDS[kindIndex];
-          const key = `${ci}:${cj}:${kindIndex}`;
+          const key = `${Math.floor(ci / FLOWER_MERGE)}:${Math.floor(cj / FLOWER_MERGE)}:${kindIndex}`;
           let list = buckets.get(key);
           if (!list) {
             list = [];
@@ -1612,7 +1630,7 @@ export async function createVegetation(ctx) {
         if (layout.onRoad(x, z, 1.5) || layout.waterDepth(x, z) > 0.1 || layout.riverDistance(x, z) < 6) continue;
         const ci = Math.floor((x + HALF) / CHUNK_SIZE), cj = Math.floor((z + HALF) / CHUNK_SIZE);
         if (ci < 0 || ci >= CHUNK_GRID || cj < 0 || cj >= CHUNK_GRID) continue;
-        const key = `${ci}:${cj}:${kindIndex}`;
+        const key = `${Math.floor(ci / FLOWER_MERGE)}:${Math.floor(cj / FLOWER_MERGE)}:${kindIndex}`;
         let list = buckets.get(key);
         if (!list) { list = []; buckets.set(key, list); }
         const h = FLOWER_KINDS[kindIndex].height;
@@ -1628,6 +1646,10 @@ export async function createVegetation(ctx) {
       const kind = FLOWER_KINDS[Number(parts[2])];
       makeInstanced(`flower:${kind.id}:${parts[0]}:${parts[1]}`, GEO_FLOWER, matFlower[kind.id], list, {
         kind: 'flower', species: kind.id, densityKey: 'flowerDensity', tint: true,
+        chunk: {
+          x: -HALF + (Number(parts[0]) + 0.5) * CHUNK_SIZE * FLOWER_MERGE,
+          z: -HALF + (Number(parts[1]) + 0.5) * CHUNK_SIZE * FLOWER_MERGE,
+        },
       });
       stats.flowers += list.length;
       stats.flowerChunks++;
@@ -1901,6 +1923,7 @@ export async function createVegetation(ctx) {
    * preset asked for.
    */
   function applyQuality() {
+    chunkRange = typeof preset.chunkRange === 'number' ? preset.chunkRange : 1300;
     for (const mesh of scaledMeshes) {
       const base = mesh.userData.baseCount;
       const count = Math.round(base * densityFactor(mesh.userData.densityKey));
@@ -1946,12 +1969,36 @@ export async function createVegetation(ctx) {
       const gust = typeof wind.gust === 'number' ? wind.gust : 0;
       sharedUniforms.windStrength.value = 0.3 + strength * 1.1 + gust * 1.2;
     }
+
+    // Ground-cover LOD: skip chunks outside the preset draw distance. Frustum
+    // culling still runs per chunk on top of this, so the pass is two compares
+    // per chunk mesh and no allocation.
+    const cam = state && state.camera && state.camera.position;
+    if (cam) {
+      const range2 = chunkRange * chunkRange;
+      for (let i = 0; i < chunkedMeshes.length; i++) {
+        const mesh = chunkedMeshes[i];
+        const dx = mesh.userData.chunkX - cam.x;
+        const dz = mesh.userData.chunkZ - cam.z;
+        mesh.visible = dx * dx + dz * dz < range2;
+      }
+    }
   }
 
   function setQuality(level) {
     const next = QUALITY_PRESETS[level];
     if (next) Object.assign(preset, next);
     applyQuality();
+  }
+
+  /**
+   * Override the ground-cover draw distance in metres (Infinity = no distance
+   * culling). Tooling use: the perf probes A/B the LOD with it. A later
+   * quality change resets it to the preset value.
+   */
+  function setChunkRange(metres) {
+    const value = Number(metres);
+    chunkRange = Number.isFinite(value) && value > 0 ? value : Infinity;
   }
 
   if (bus && typeof bus.on === 'function') {
@@ -1963,5 +2010,5 @@ export async function createVegetation(ctx) {
     BUSH_DEFS.reduce((n, d) => n + d.baked.length, 0) +
     ROCK_DEFS.length + PEBBLE_DEFS.length;
 
-  return { group, update, setQuality, treeColliders, stats, sharedUniforms };
+  return { group, update, setQuality, setChunkRange, treeColliders, stats, sharedUniforms };
 }
