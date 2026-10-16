@@ -20,7 +20,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
-  Rng, SimplexNoise2D, clamp, clamp01, lerp, smoothstep, TAU, HALF_PI,
+  Rng, SimplexNoise2D, clamp, clamp01, lerp, smoothstep, TAU, HALF_PI, createSlicer,
 } from '../core/utils.js';
 
 // ---------------------------------------------------------------------------
@@ -254,7 +254,7 @@ function createMaterials(TEX) {
 // createLandmarks
 // ---------------------------------------------------------------------------
 
-export function createLandmarks(ctx) {
+export async function createLandmarks(ctx) {
   const layout = ctx.layout;
   const TEX = ctx.textures;
   const quality = ctx.quality || 'high';
@@ -263,6 +263,10 @@ export function createLandmarks(ctx) {
   const rng = new Rng('landmarks:' + layout.seed);
   const noise = new SimplexNoise2D('landmarks:' + layout.seed);
   const M = createMaterials(TEX);
+
+  // Cooperative build slicing: each set piece is 5-15 ms of geometry work, so
+  // yielding between pieces keeps the module off the long-task list.
+  const slice = createSlicer(24);
 
   const group = new THREE.Group();
   group.name = 'landmarks';
@@ -309,6 +313,7 @@ export function createLandmarks(ctx) {
     const p = layout.pois.lighthouse.position;
     const baseY = ground(p.x, p.z) - 0.4;
     const rot = HALF_PI - seaAngle(p.x, p.z);      // local +Z points out to sea
+    await slice();
     const scope = createPiece('lighthouse', p.x, p.z, baseY, rot);
     const { b, holder } = scope;
     const R = 3.3, TOP = 22;
@@ -430,6 +435,7 @@ export function createLandmarks(ctx) {
     const p = layout.pois.standingStones.position;
     const baseY = ground(p.x, p.z) - 0.3;
     const rot = rng.range(0, TAU);
+    await slice();
     const scope = createPiece('standingStones', p.x, p.z, baseY, rot);
     const { b, holder } = scope;
     const ringR = 9.0;
@@ -479,6 +485,7 @@ export function createLandmarks(ctx) {
   {
     const p = layout.pois.treehouse.position;
     const baseY = ground(p.x, p.z) - 0.6;
+    await slice();
     const scope = createPiece('treehouse', p.x, p.z, baseY, rng.range(0, TAU));
     const { b, holder } = scope;
     const PLAT = 7.0;
@@ -629,6 +636,7 @@ export function createLandmarks(ctx) {
   {
     const p = layout.pois.ruins.position;
     const baseY = ground(p.x, p.z) - 0.5;
+    await slice();
     const scope = createPiece('ruins', p.x, p.z, baseY, rng.range(0, TAU));
     const { b, holder } = scope;
     const R = 3.4;
@@ -723,6 +731,7 @@ export function createLandmarks(ctx) {
 
   {
     const p = layout.pois.arch.position;
+    await slice();
     const scope = createPiece('seaArch', p.x, p.z, 0, Math.atan2(p.x, p.z));
     const { b, holder } = scope;
     const shape = new THREE.Shape();
@@ -774,6 +783,7 @@ export function createLandmarks(ctx) {
 
   {
     const p = layout.pois.seaStacks.position;
+    await slice();
     const scope = createPiece('seaStacks', p.x, p.z, 0, rng.range(0, TAU));
     const { b, holder } = scope;
     // [x, z, base radius, height above the waterline (12..24 m)]
@@ -827,6 +837,7 @@ export function createLandmarks(ctx) {
   {
     const p = layout.pois.lakeIsland.position;
     const baseY = ground(p.x, p.z) - 0.3;
+    await slice();
     const scope = createPiece('lakePavilion', p.x, p.z, baseY, rng.range(0, TAU));
     const { b, holder } = scope;
     b.add(M.plank, tileUV(gBox(4.4, 0.24, 4.4), 4, 4).translate(0, 0.22, 0));
@@ -872,6 +883,7 @@ export function createLandmarks(ctx) {
     }
     const deckY = Math.max(ground(shoreX, shoreZ), layout.lakeY) + 0.65;
     const rot = -Math.atan2(uz, ux);
+    await slice();
     const scope = createPiece('lakeJetty', shoreX, shoreZ, deckY - 0.3, rot);
     const { b, holder } = scope;
     const L = 11.0;
@@ -966,6 +978,7 @@ export function createLandmarks(ctx) {
   {
     const p = layout.pois.balloons.position;
     const baseY = ground(p.x, p.z) - 0.3;
+    await slice();
     const scope = createPiece('balloons', p.x, p.z, baseY, 0);
     const { b, holder } = scope;
     const balloonList = [];
@@ -1103,6 +1116,7 @@ export function createLandmarks(ctx) {
     const cairnX = cairnPoi ? cairnPoi.position.x : peak.x + 9.5;
     const cairnZ = cairnPoi ? cairnPoi.position.z : peak.z + 11.0;
     const cairnY = ground(cairnX, cairnZ) - 0.35;
+    await slice();
     const scope = createPiece('summitCairn', cairnX, cairnZ, cairnY, rng.range(0, TAU));
     const { b, holder } = scope;
     // Balancing-stone cairn, 2.5 m of improbably stacked rocks.
@@ -1127,6 +1141,7 @@ export function createLandmarks(ctx) {
     const p = layout.pois.observatory.position;
     const baseY = ground(p.x, p.z) - 0.4;
     const rot = HALF_PI - Math.atan2(p.z, p.x);
+    await slice();
     const scope = createPiece('observatory', p.x, p.z, baseY, rot);
     const { b, holder } = scope;
     // Stone plinth.
@@ -1168,6 +1183,7 @@ export function createLandmarks(ctx) {
     const fx = peak.x - 8.0;
     const fz = peak.z - 6.0;
     const baseY = ground(fx, fz) - 0.35;
+    await slice();
     const scope = createPiece('summitFlag', fx, fz, baseY, 0);
     const { b, holder } = scope;
     b.add(M.stone, tileUV(gCyl(0.6, 0.8, 0.6, 10), 2, 1).translate(0, 0.2, 0));
@@ -1217,6 +1233,7 @@ export function createLandmarks(ctx) {
     const p = layout.pois.chapel.position;
     const baseY = ground(p.x, p.z) - 0.3;
     const rot = rng.range(-0.4, 0.4);
+    await slice();
     const scope = createPiece('chapel', p.x, p.z, baseY, rot);
     const { b, holder } = scope;
     // Nave + gable roof.
@@ -1338,6 +1355,7 @@ export function createLandmarks(ctx) {
     const p = layout.pois.gates.position;
     const baseY = ground(p.x, p.z) - 0.3;
     const rot = typeof p.heading === 'number' ? p.heading : 0;
+    await slice();
     const scope = createPiece('gates', p.x, p.z, baseY, rot);
     const { b, holder } = scope;
     const SPAN = 5.6;
@@ -1458,6 +1476,7 @@ export function createLandmarks(ctx) {
     const cx = bp.x + tX * crossD;
     const cz = bp.z + tZ * crossD;
     const rot = roadRot - HALF_PI;              // holder local +X follows the road
+    await slice();
     const scope = createPiece('bridge', cx, cz, deckTop, rot);
     const { b, holder } = scope;
     samples[samples.length - 1] = { id: 'bridge', x: cx, z: cz, y: deckTop, baseY: ground(cx, cz) };
@@ -1555,6 +1574,7 @@ export function createLandmarks(ctx) {
     const lipT = 0.16;
     const lip = river.getPointAt(lipT);
     const baseY = ground(lip.x, lip.z) - 0.45;
+    await slice();
     const scope = createPiece('waterfall', lip.x, lip.z, baseY, 0);
     const { b, holder } = scope;
     const frame = (t) => {
@@ -1634,6 +1654,7 @@ export function createLandmarks(ctx) {
     const sz = 2050;
     const baseY = ground(sx, sz) - 0.45;
     const rot = HALF_PI - Math.atan2(sz, sx);     // holder local +Z faces the sea
+    await slice();
     const scope = createPiece('shipwreck', sx, sz, baseY, rot);
     const { b, holder } = scope;
     // Keel + ribs: a broken hull skeleton, heeled over.
@@ -1695,6 +1716,7 @@ export function createLandmarks(ctx) {
     const bankZ = p.z + nz * 5.5 * side;
     const baseY = ground(bankX, bankZ) - 0.3;
     const rot = Math.atan2(-nx * side, -nz * side);
+    await slice();
     const scope = createPiece('ropeSwing', bankX, bankZ, baseY, rot);
     const { b, holder } = scope;
     for (const s of [-1, 1]) {
@@ -1729,6 +1751,7 @@ export function createLandmarks(ctx) {
     }
     const baseY = ground(spot.x, spot.z) - 0.25;
     const rot = rng.range(0, TAU);
+    await slice();
     const scope = createPiece('picnic', spot.x, spot.z, baseY, rot);
     const { b, holder } = scope;
     // Blanket conforming to the grass.
@@ -1786,6 +1809,7 @@ export function createLandmarks(ctx) {
     const p = layout.pois.bench.position;
     const baseY = ground(p.x, p.z) - 0.4;
     const rot = HALF_PI - Math.atan2(p.z, p.x);     // holder local +Z looks out to sea
+    await slice();
     const scope = createPiece('viewpoint', p.x, p.z, baseY, rot);
     const { b, holder } = scope;
     const DECK = 0.95;

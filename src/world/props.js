@@ -12,7 +12,7 @@
  */
 
 import * as THREE from 'three';
-import { Rng, TAU, clamp, clamp01, lerp } from '../core/utils.js';
+import { Rng, TAU, clamp, clamp01, lerp, createSlicer } from '../core/utils.js';
 import { QUALITY_PRESETS } from '../core/settings.js';
 
 const WHITE = { r: 1, g: 1, b: 1 };
@@ -441,7 +441,7 @@ function hullG(len, beam, depth) {
  * createProps
  * ======================================================================== */
 
-export function createProps(ctx) {
+export async function createProps(ctx) {
   const layout = ctx.layout;
   const TEX = ctx.textures;
   const rng = ctx.rng || new Rng(20261014);
@@ -450,6 +450,11 @@ export function createProps(ctx) {
     : (ctx.engine && typeof ctx.engine.quality === 'string' && QUALITY_PRESETS[ctx.engine.quality])
       ? ctx.engine.quality : 'high';
   const DET = qName === 'low' ? 0 : qName === 'medium' ? 1 : 2;
+
+  // Cooperative build slicing: the village / harbour / mill sections and the
+  // static-batch merge are each tens of milliseconds of geometry work; these
+  // yields keep the boot off the long-task list.
+  const slice = createSlicer(24);
 
   const group = new THREE.Group();
   group.name = 'props';
@@ -742,6 +747,8 @@ export function createProps(ctx) {
   /* ======================================================================
    * 1. VILLAGE
    * ==================================================================== */
+
+  await slice();
 
   const V = layout.pois.village.position;
   const houses = [];
@@ -1127,6 +1134,8 @@ export function createProps(ctx) {
    * 2. HARBOR
    * ==================================================================== */
 
+  await slice();
+
   const H = layout.pois.harbor.position;
   {
     const P1 = { dx: 0.5, dz: 0.866 };
@@ -1365,6 +1374,8 @@ export function createProps(ctx) {
    * 3. WINDMILL
    * ==================================================================== */
 
+  await slice();
+
   {
     const W = layout.pois.windmill.position;
     const wy = groundAt(W.x, W.z);
@@ -1470,6 +1481,8 @@ export function createProps(ctx) {
   /* ======================================================================
    * 4. WATERMILL (house on the terrace, leat down the ravine, wheel in the river)
    * ==================================================================== */
+
+  await slice();
 
   /** Wooden footbridge across the gorge, following the real bank heights. */
   function buildFootbridge(px, pz, tx, tz, opts) {
@@ -1707,6 +1720,8 @@ export function createProps(ctx) {
   /* ======================================================================
    * 5. FARMS, ORCHARD, VINEYARD
    * ==================================================================== */
+
+  await slice();
 
   /** Instanced prototype pool: one InstancedMesh per repeated prop type. */
   class InstancePool {
@@ -2068,6 +2083,8 @@ export function createProps(ctx) {
    * 6. CAMP (north beach)
    * ==================================================================== */
 
+  await slice();
+
   const CP = layout.pois.camp.position;
   {
     // --- three tents ---
@@ -2217,6 +2234,8 @@ export function createProps(ctx) {
   /* ======================================================================
    * 7. ROADSIDE INFRASTRUCTURE
    * ==================================================================== */
+
+  await slice();
 
   const N_ROAD = layout.roadSamples.length / 3;
   const roadAt = (i) => {
@@ -2474,6 +2493,8 @@ export function createProps(ctx) {
    * 8. SCATTERED DETAILS
    * ==================================================================== */
 
+  await slice();
+
   {
     // --- fenced pastures beside the ring road (+ a water trough) ---
     for (let i = 0; i < 2; i++) {
@@ -2676,6 +2697,7 @@ export function createProps(ctx) {
 
   const staticMeshes = [];
   for (const [matKey, buf] of batches) {
+    await slice();
     if (buf.n < 3) continue;
     const mesh = new THREE.Mesh(buf.geometry(), MAT[matKey]);
     const meta = MAT_META[matKey] || { cast: true, receive: true };

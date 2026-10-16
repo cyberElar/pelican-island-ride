@@ -19,7 +19,7 @@
  */
 
 import * as THREE from 'three';
-import { Rng, TAU, HALF_PI, lerp } from '../core/utils.js';
+import { Rng, TAU, HALF_PI, lerp, createSlicer } from '../core/utils.js';
 import { QUALITY_PRESETS } from '../core/settings.js';
 
 // ---------------------------------------------------------------------------
@@ -222,7 +222,7 @@ function boulderGeometry(radius, detail, squash, seed) {
 // Public API
 // ---------------------------------------------------------------------------
 
-export function createVegetation(ctx) {
+export async function createVegetation(ctx) {
   const layout = ctx.layout;
   const textures = ctx.textures || {};
   const engine = ctx.engine || null;
@@ -248,6 +248,12 @@ export function createVegetation(ctx) {
     windStrength: { value: 0.4 },
   };
   let elapsed = 0;
+
+  // Cooperative build slicing: the scatter passes below yield to the browser
+  // whenever ~24 ms of work has piled up, so the boot is a run of short tasks
+  // instead of one multi-second freeze (the progress bar keeps animating and
+  // Lighthouse total blocking time stays near zero).
+  const slice = createSlicer(24);
 
   // TEMP-PROFILE: build-stage stopwatch (browser only) - remove after tuning.
   const __timing = typeof window !== 'undefined' && typeof performance !== 'undefined';
@@ -777,6 +783,7 @@ export function createVegetation(ctx) {
   const MASK_STEP = (WORLD + 240) / (MASK_N - 1);
   const mask = new Float32Array(MASK_N * MASK_N);
   for (let j = 0; j < MASK_N; j++) {
+    await slice();
     for (let i = 0; i < MASK_N; i++) {
       // Max of a small probe, not a point sample: a coastal cell must never
       // read as open ocean, or beach palms/seaweed get filtered out before the
@@ -843,6 +850,7 @@ export function createVegetation(ctx) {
   const biomeIds = [];
   const biomeIdsByName = new Map();
   for (let j = 0; j < BIOME_N; j++) {
+    await slice();
     const z = MASK_MIN + j * BIOME_STEP;
     for (let i = 0; i < BIOME_N; i++) {
       const name = layout.biomeAt(MASK_MIN + i * BIOME_STEP, z);
@@ -875,6 +883,7 @@ export function createVegetation(ctx) {
   {
     const raw = new Uint8Array(EXCL_N * EXCL_N);
     for (let j = 0; j < EXCL_N; j++) {
+      await slice();
       const z = MASK_MIN + j * EXCL_STEP;
       for (let i = 0; i < EXCL_N; i++) {
         const x = MASK_MIN + i * EXCL_STEP;
@@ -890,6 +899,7 @@ export function createVegetation(ctx) {
     // Dilate one cell so a flagged feature cannot clip a corner of a
     // neighbouring, unvisited cell.
     for (let j = 0; j < EXCL_N; j++) {
+      await slice();
       for (let i = 0; i < EXCL_N; i++) {
         let f = 0;
         for (let dj = -1; dj <= 1 && f !== 7; dj++) {
@@ -1092,7 +1102,7 @@ export function createVegetation(ctx) {
   };
   trunkOnlyDepth.customProgramCacheKey = () => 'vegTrunkOnlyDepth';
 
-  function placeTrees(def, target, sample, clearOpts, extraFilter) {
+  async function placeTrees(def, target, sample, clearOpts, extraFilter) {
     const treeDensity = densityOf('treeDensity');
     const wanted = Math.round(target * treeDensity);
     const placed = [];
@@ -1100,6 +1110,7 @@ export function createVegetation(ctx) {
     let tries = 0;
 
     while (placed.length < wanted && tries < maxTries) {
+      await slice();
       tries++;
       const c = sample(rng);
       if (!c) continue;
@@ -1231,23 +1242,23 @@ export function createVegetation(ctx) {
   }
 
   // pine: the whole north-east pinewood, happy on slopes
-  placeTrees(treeById.pine, 3800, (r) => sampleForest(r, layout.pois.pineForest, 0.95),
+  await placeTrees(treeById.pine, 3800, (r) => sampleForest(r, layout.pois.pineForest, 0.95),
     treeClear({ maxSlope: 0.62 }),
     (x, z) => biomeIs(x, z, ['forest', 'meadow', 'rock', 'snow']));
 
   // oak: broadleaf woodland, gently sloping ground
-  placeTrees(treeById.oak, 3600, (r) => sampleForest(r, layout.pois.forest, 0.9),
+  await placeTrees(treeById.oak, 3600, (r) => sampleForest(r, layout.pois.forest, 0.9),
     treeClear({ maxSlope: 0.48 }),
     (x, z) => biomeIs(x, z, ['forest', 'meadow']));
 
   // birch: the sunny rim of both forests
-  placeTrees(treeById.birch, 700,
+  await placeTrees(treeById.birch, 700,
     (r) => sampleForestRing(r, r.chance(0.5) ? layout.pois.forest : layout.pois.pineForest, 0.82, 1.22),
     treeClear({ maxSlope: 0.45 }),
     (x, z) => biomeIs(x, z, ['forest', 'meadow']));
 
   // palm: beaches, h < 12 m, close to the shore
-  placeTrees(treeById.palm, 190, (r) => sampleShore(r, 10, 90),
+  await placeTrees(treeById.palm, 190, (r) => sampleShore(r, 10, 90),
     treeClear({ minHeight: 0.7, maxSlope: 0.5 }),
     (x, z) => {
       const h = layout.heightAt(x, z);
@@ -1256,7 +1267,7 @@ export function createVegetation(ctx) {
     });
 
   // cypress: village lanes, chapel grounds and the ring road verges
-  placeTrees(treeById.cypress, 330, (r) => {
+  await placeTrees(treeById.cypress, 330, (r) => {
     const k = r.float();
     if (k < 0.62) return sampleRoadSide(r, 9.5, 24);
     if (k < 0.81) return sampleRing(r, layout.pois.village, 60, 210);
@@ -1265,7 +1276,7 @@ export function createVegetation(ctx) {
   (x, z) => biomeIs(x, z, ['meadow', 'beach', 'forest']));
 
   // willow / eucalyptus: river banks and the lake shore
-  placeTrees(treeById.willow, 380,
+  await placeTrees(treeById.willow, 380,
     (r) => (r.chance(0.6) ? sampleRiverSide(r, 8, 34) : sampleLakeShore(r)),
     treeClear({ river: 7, minHeight: 1, maxSlope: 0.5 }),
     (x, z) => biomeIs(x, z, ['meadow', 'forest', 'beach']));
@@ -1280,6 +1291,7 @@ export function createVegetation(ctx) {
     const maxTries = target * 18;
     let placed = 0;
     for (let tries = 0; tries < maxTries && placed < target; tries++) {
+      await slice();
       const c = rng.chance(0.65) ? sampleRoadSide(rng, 7, 60) : rng.chance(0.65)
         ? sampleForestRing(rng, rng.chance(0.5) ? layout.pois.forest : layout.pois.pineForest, 0.72, 1.35)
         : sampleIsland(rng, 2320);
@@ -1333,6 +1345,7 @@ export function createVegetation(ctx) {
     const maxTries = target * 10;
     let placed = 0;
     for (let tries = 0; tries < maxTries && placed < target; tries++) {
+      await slice();
       const c = sampleIsland(rng, 2350);
       const x = c.x, z = c.z;
       if (fastHeight(x, z) < 0.8) continue;
@@ -1362,6 +1375,7 @@ export function createVegetation(ctx) {
     const maxAccentTries = accentTarget * 30;
     let accentPlaced = 0;
     for (let tries = 0; tries < maxAccentTries && accentPlaced < accentTarget; tries++) {
+      await slice();
       const c = sampleIsland(rng, 2300);
       const x = c.x, z = c.z;
       if (fastHeight(x, z) < 2) continue;
@@ -1403,6 +1417,7 @@ export function createVegetation(ctx) {
     const pebbles = [[], []];
     const patches = Math.round(96 * densityOf('treeDensity'));
     for (let p = 0; p < patches; p++) {
+      await slice();
       const c = sampleRiverSide(rng, 4, 20);
       const count = rng.irange(12, 34);
       for (let i = 0; i < count; i++) {
@@ -1446,6 +1461,7 @@ export function createVegetation(ctx) {
     const corridor = Array.from({ length: CHUNK_GRID * CHUNK_GRID }, () => []);
     const roadAttempts = Math.round(layout.roadLength * 120 * 0.32 * built.grassDensity);
     for (let i = 0; i < roadAttempts; i++) {
+      await slice();
       // Inlined sampleRoadSide(): the lateral distance is needed anyway, and
       // every layout.* query per attempt was the hot spot of the whole boot.
       layout.roadPoint(rng.float(), _roadPt);
@@ -1471,6 +1487,7 @@ export function createVegetation(ctx) {
         sz: rng.range(1.2, 2.2), tint: greenTint(rng, 0.8) });
     }
     for (let cj = 0; cj < CHUNK_GRID; cj++) {
+      await slice();
       for (let ci = 0; ci < CHUNK_GRID; ci++) {
         const x0 = -HALF + ci * CHUNK_SIZE;
         const z0 = -HALF + cj * CHUNK_SIZE;
@@ -1532,6 +1549,7 @@ export function createVegetation(ctx) {
 
     const buckets = new Map();
     for (let cj = 0; cj < CHUNK_GRID; cj++) {
+      await slice();
       for (let ci = 0; ci < CHUNK_GRID; ci++) {
         const x0 = -HALF + ci * CHUNK_SIZE;
         const z0 = -HALF + cj * CHUNK_SIZE;
@@ -1585,6 +1603,7 @@ export function createVegetation(ctx) {
     }
 
     for (let patch = 0; patch < 2400 * built.flowerDensity; patch++) {
+      await slice();
       const c = sampleRoadSide(rng, 7, 55);
       if (!FLOWER_BIOME_WEIGHT[layout.biomeAt(c.x, c.z)]) continue;
       const kindIndex = pickKind(rng.float());
@@ -1627,6 +1646,7 @@ export function createVegetation(ctx) {
     const maxTries = target * 10;
     let placed = 0;
     for (let tries = 0; tries < maxTries && placed < target; tries++) {
+      await slice();
       let x, z;
       if (rng.chance(0.68)) {
         const c = sampleRiverSide(rng, 6, 15);
@@ -1674,6 +1694,7 @@ export function createVegetation(ctx) {
     const target = Math.round(340 * built.treeDensity);
     const maxTries = target * 12;
     for (let tries = 0; tries < maxTries && pads.length < target; tries++) {
+      await slice();
       const a = rng.float() * TAU;
       const rr = LAKE.radius * Math.sqrt(rng.float()) * 0.9;
       const x = LAKE.center.x + Math.cos(a) * rr;
@@ -1713,6 +1734,7 @@ export function createVegetation(ctx) {
     const weedTarget = Math.round(780 * built.treeDensity);
     const weedTries = weedTarget * 26;
     for (let tries = 0; tries < weedTries && seaweed.length < weedTarget; tries++) {
+      await slice();
       const c = sampleShore(rng, 8, 60);
       const x = c.x, z = c.z;
       const h = layout.heightAt(x, z);
@@ -1731,6 +1753,7 @@ export function createVegetation(ctx) {
     const driftTarget = Math.round(150 * built.treeDensity);
     const driftTries = driftTarget * 24;
     for (let tries = 0; tries < driftTries && driftwood.length < driftTarget; tries++) {
+      await slice();
       const c = sampleShore(rng, 6, 55);
       const x = c.x, z = c.z;
       const h = layout.heightAt(x, z);
@@ -1749,6 +1772,7 @@ export function createVegetation(ctx) {
     const shellTarget = Math.round(220 * built.treeDensity);
     const shellTries = shellTarget * 20;
     for (let tries = 0; tries < shellTries && shells.length < shellTarget; tries++) {
+      await slice();
       const c = sampleShore(rng, 10, 70);
       const x = c.x, z = c.z;
       const h = layout.heightAt(x, z);
@@ -1811,6 +1835,7 @@ export function createVegetation(ctx) {
       const list = [];
       const target = Math.round(def.count * built.treeDensity);
       for (let attempt = 0; attempt < target * 12 && list.length < target; attempt++) {
+        await slice();
         const c = rng.chance(0.7) ? sampleRoadSide(rng, 7, 60)
           : sampleForest(rng, rng.chance(0.5) ? layout.pois.forest : layout.pois.pineForest, 1);
         const x = c.x, z = c.z;

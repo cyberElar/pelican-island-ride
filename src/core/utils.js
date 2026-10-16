@@ -17,6 +17,47 @@ export const lerp = (a, b, t) => a + (b - a) * t;
 export const invLerp = (a, b, v) => (b === a ? 0 : (v - a) / (b - a));
 export const remap = (v, a, b, c, d) => lerp(c, d, clamp01(invLerp(a, b, v)));
 
+/**
+ * Cooperative time slicer for long synchronous builds (the island scatter
+ * passes). Heavy loops call the returned function once per iteration; when the
+ * current slice has run for `budgetMs` it yields a macrotask so the browser can
+ * paint the loading screen. Without it the whole build is one multi-second
+ * long task: a frozen progress bar, and Lighthouse total blocking time of
+ * ~5 s (desktop) / ~14 s (mobile).
+ *
+ * The yield uses MessageChannel: setTimeout(0) is clamped to 4 ms once nested,
+ * which would add seconds across hundreds of slices, and requestAnimationFrame
+ * would wait for a full frame each time.
+ */
+export function createSlicer(budgetMs = 24) {
+  const hasChannel = typeof MessageChannel === 'function';
+  const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  let start = now();
+
+  const yieldToBrowser = () => new Promise((resolve) => {
+    if (hasChannel) {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => {
+        channel.port1.close();
+        channel.port2.close();
+        resolve();
+      };
+      channel.port2.postMessage(0);
+    } else if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => resolve());
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+
+  return async function slice() {
+    if (now() - start < budgetMs) return false;
+    await yieldToBrowser();
+    start = now();
+    return true;
+  };
+}
+
 export function smoothstep(edge0, edge1, x) {
   const t = clamp01((x - edge0) / (edge1 - edge0));
   return t * t * (3 - 2 * t);

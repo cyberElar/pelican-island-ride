@@ -42,7 +42,7 @@ const layout = createLayout(SEED);
 // --- build ---------------------------------------------------------------
 
 const buildStart = performance.now();
-const veg = createVegetation({
+const veg = await createVegetation({
   engine,
   layout,
   textures,

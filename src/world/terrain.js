@@ -5,13 +5,19 @@
  */
 
 import * as THREE from 'three';
-import { clamp01, lerp } from '../core/utils.js';
+import { clamp01, lerp, createSlicer } from '../core/utils.js';
 
-export function createTerrain(ctx) {
+export async function createTerrain(ctx) {
   const { layout, textures: TEX, engine } = ctx;
   const preset = engine?.preset || { terrainSegments: 400, heightTextureSize: 768, treeDensity: 1 };
   const group = new THREE.Group();
   group.name = 'terrain';
+
+  // Cooperative build slicing: the ~400x400 vertex grid, the height
+  // DataTexture and the road ribbons add up to about a second of synchronous
+  // work; yielding between rows keeps the boot responsive instead of one long
+  // blocking task (Lighthouse TBT).
+  const slice = createSlicer(24);
 
   const worldSize = layout.WORLD_SIZE;
   const half = layout.HALF;
@@ -46,6 +52,7 @@ export function createTerrain(ctx) {
   const tmpColor = new THREE.Color();
 
   for (let j = 0; j <= segments; j++) {
+    await slice();
     const z = -half + j * step;
     for (let i = 0; i <= segments; i++) {
       const x = -half + i * step;
@@ -92,6 +99,7 @@ export function createTerrain(ctx) {
   const indices = new Uint32Array(segments * segments * 6);
   let ii = 0;
   for (let j = 0; j < segments; j++) {
+    await slice();
     for (let i = 0; i < segments; i++) {
       const a = j * (segments + 1) + i;
       const b = a + 1;
@@ -414,10 +422,21 @@ export function createTerrain(ctx) {
   // ---------------------------------------------------------------------------
 
   const htSize = Math.max(128, preset.heightTextureSize | 0);
-  const heightGrid = layout.sampleHeightGrid(htSize);
+  // Same rule as layout.sampleHeightGrid(), but sliced: the 768x768 grid is
+  // ~590k heightAt() queries and must not run as a single blocking task.
+  const heightGrid = new Float32Array(htSize * htSize);
+  const htStep = worldSize / (htSize - 1);
+  for (let j = 0; j < htSize; j++) {
+    await slice();
+    const z = -half + j * htStep;
+    for (let i = 0; i < htSize; i++) heightGrid[j * htSize + i] = layout.heightAt(-half + i * htStep, z);
+  }
   // half-float keeps linear filtering universally supported
   const heightData = new Uint16Array(htSize * htSize);
-  for (let i = 0; i < heightData.length; i++) heightData[i] = THREE.DataUtils.toHalfFloat(heightGrid[i]);
+  for (let i = 0; i < heightData.length; i++) {
+    if ((i & 0x3fff) === 0) await slice();
+    heightData[i] = THREE.DataUtils.toHalfFloat(heightGrid[i]);
+  }
   const heightTexture = new THREE.DataTexture(heightData, htSize, htSize, THREE.RedFormat, THREE.HalfFloatType);
   heightTexture.needsUpdate = true;
   heightTexture.magFilter = THREE.LinearFilter;

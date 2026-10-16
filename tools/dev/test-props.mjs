@@ -44,7 +44,7 @@ const ctx = {
 // --- build -----------------------------------------------------------------
 
 const t0 = performance.now();
-const props = createProps(ctx);
+const props = await createProps(ctx);
 const buildMs = performance.now() - t0;
 const { group, update, colliders, chimneys, lamps, stats, samples } = props;
 

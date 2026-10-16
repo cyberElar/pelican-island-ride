@@ -228,7 +228,7 @@ async function boot() {
     setProgress(i / totalSteps, `正在生成小岛 · ${label}`);
     await nextFrame();
     try {
-      const instance = entry.factory(ctx);
+      const instance = await entry.factory(ctx);
       mark(entry.id);
       modules[entry.id] = instance;
       ctx[entry.id] = instance;

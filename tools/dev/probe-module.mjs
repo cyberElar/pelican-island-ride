@@ -55,7 +55,7 @@ if (!factoryName) {
 }
 
 const t1 = performance.now();
-const instance = mod[factoryName](ctx);
+const instance = await mod[factoryName](ctx);
 const buildMs = performance.now() - t1;
 console.log(`build: ${buildMs.toFixed(0)} ms`);
 

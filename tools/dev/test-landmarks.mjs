@@ -76,7 +76,7 @@ const ctx = {
 // ---------------------------------------------------------------------------
 
 const t0 = performance.now();
-const landmarks = createLandmarks(ctx);
+const landmarks = await createLandmarks(ctx);
 const buildMs = performance.now() - t0;
 
 assert.ok(landmarks && typeof landmarks === 'object', 'createLandmarks must return an object');
@@ -338,7 +338,7 @@ assert.doesNotThrow(() => landmarks.update(1e6, dayState), 'update(huge dt) must
 // ---------------------------------------------------------------------------
 
 {
-  const again = createLandmarks(ctx);
+  const again = await createLandmarks(ctx);
   assert.deepEqual(again.samples, landmarks.samples, 'the same seed must rebuild identical ground anchors');
   assert.deepEqual(again.colliders, landmarks.colliders, 'the same seed must rebuild identical colliders');
   assert.equal(again.stats.tris, landmarks.stats.tris, 'the same seed must rebuild the same triangle count');
@@ -347,7 +347,7 @@ assert.doesNotThrow(() => landmarks.update(1e6, dayState), 'update(huge dt) must
 }
 
 {
-  const low = createLandmarks({
+  const low = await createLandmarks({
     engine: { preset: QUALITY_PRESETS.low, quality: 'low' },
     layout,
     textures,

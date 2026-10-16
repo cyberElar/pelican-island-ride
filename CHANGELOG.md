@@ -69,6 +69,12 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
   unthrottled desktop (up to ~13 s on a busy machine): the grass scatter uses
   cached biome and "uncertain zone" grids instead of exact layout queries per
   attempt.
+- The world build now runs as a chain of short, cooperatively scheduled tasks:
+  terrain, vegetation, props and landmarks yield to the browser every ~24 ms
+  (`createSlicer`), so the loading screen keeps animating and no single task
+  blocks for seconds. Lighthouse total blocking time fell from 4.9 s to 0.6 s
+  (desktop) and 13.7 s to 6.4 s (mobile) with identical placement.
+  Evidence: `docs/research/lighthouse-baseline.md`.
 - Denser vegetation (≈9 000 trees and ≈740 000 grass tufts at high) without new
   draw calls; off-road slopes stay deliberately lighter.
 - Seabreeze Village keeps 12-16 houses on every seed (unlucky seeds used to
