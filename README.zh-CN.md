@@ -98,6 +98,7 @@ npm run build        # 生成 dist/game.js（压缩）
 npm run build:publish# 同时刷新仓库根目录的可玩副本（game.js、styles.css）
 npm test             # 11 个模块测试套件，全部在 Node 中无头运行
 npm run smoke        # 浏览器冒烟测试（无头 Chromium，file:// 构建产物）
+npm run smoke:cross  # Chromium + Firefox + WebKit（首次需安装浏览器）
 npm run serve        # 本地静态服务器 http://localhost:5577/
 npm run shots:readme # 重新生成 screenshots/
 ```

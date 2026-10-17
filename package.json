@@ -13,6 +13,9 @@
     "shots:readme": "node tools/dev/make-readme-shots.mjs",
     "test": "node tools/dev/test-all.mjs",
     "smoke": "node tools/dev/smoke-ci.mjs",
+    "smoke:firefox": "node tools/dev/smoke-ci.mjs --browser firefox",
+    "smoke:webkit": "node tools/dev/smoke-ci.mjs --browser webkit",
+    "smoke:cross": "node tools/dev/smoke-ci.mjs --browser chromium && node tools/dev/smoke-ci.mjs --browser firefox && node tools/dev/smoke-ci.mjs --browser webkit",
     "serve": "node tools/serve.mjs"
   },
   "keywords": [],

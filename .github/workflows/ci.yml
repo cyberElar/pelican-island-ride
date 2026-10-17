@@ -120,3 +120,29 @@ jobs:
       # that nothing logged an error and nothing was fetched from the network.
       - name: Browser smoke test
         run: node tools/dev/smoke-ci.mjs
+
+  smoke-cross-browser:
+    name: browser smoke (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the bundle
+        run: npm run build
+
+      - name: Install ${{ matrix.browser }}
+        run: npx --yes playwright@1.64.0 install --with-deps ${{ matrix.browser }}
+
+      - name: Browser smoke test
+        run: node tools/dev/smoke-ci.mjs --browser ${{ matrix.browser }}

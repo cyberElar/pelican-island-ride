@@ -122,6 +122,7 @@ npm run build        # -> dist/game.js (minified)
 npm run build:publish# also refresh the playable root copies (game.js, styles.css)
 npm test             # 11 module test suites, all headless in Node
 npm run smoke        # browser smoke test (headless chromium, file:// build)
+npm run smoke:cross  # chromium + firefox + webkit (install browsers once)
 npm run serve        # dev server at http://localhost:5577/
 npm run shots:readme # regenerate screenshots/ from the root build
 ```

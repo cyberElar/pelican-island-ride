@@ -7,8 +7,22 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Cross-browser smoke coverage: `tools/dev/smoke-ci.mjs --browser firefox`
+  and `--browser webkit` run the same desktop checks as Chromium (boot,
+  WebGL2, tutorial, real input, pause/resume, recovery, content sanity and the
+  `file://` contract). `npm run smoke:cross` runs all three; the documented
+  matrix now records Firefox 157 and WebKit 27.2 passes in addition to Edge and
+  Chrome, and CI runs Firefox/WebKit jobs alongside the Chromium one.
+  Playwright's WebKit is not Safari/iOS, so real-device Safari remains an
+  explicit gap.
+
 ### Changed
 
+- The release checklist is version-agnostic and includes the cross-browser
+  smoke step; the package-lock root version is back in sync with
+  `package.json` (1.1.0).
 - Tree geometry: trunk and branch cylinders are open-ended (the caps are buried
   or inside the canopy), which is RNG-neutral, so the island layout is
   untouched. Built vegetation drops from 1.52 M to 1.32 M triangles and the

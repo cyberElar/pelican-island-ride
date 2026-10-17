@@ -109,22 +109,28 @@ generated and a seed makes the report reproducible.
 ## Releasing
 
 The repository root is the published site and `game.js` / `styles.css` are
-committed on purpose, so a release is: everything green, then three commands.
+committed on purpose, so a release is: everything green, then the commands
+below. Replace `1.1.1` with the version in `package.json`; the tag, release
+title and CHANGELOG entry must all use the same number.
 
 ```powershell
+$version = "1.1.1"
 npm ci
 npm test                        # 11 suites
 npm run smoke                   # browser smoke test on the built bundle
+npx --yes playwright@1.64.0 install firefox webkit   # one-time, for the next line
+npm run smoke:cross             # chromium + firefox + webkit, desktop
 npm run build:publish           # refresh game.js + styles.css, commit if stale
 
-git tag -a v1.0.0 -m "Pelican Island Ride v1.0.0"
+git tag -a "v$version" -m "Pelican Island Ride v$version"
 git push origin main --follow-tags
-gh release create v1.0.0 --title "Pelican Island Ride v1.0.0" --notes-file CHANGELOG.md \
+gh release create "v$version" --title "Pelican Island Ride v$version" --notes-file CHANGELOG.md \
   screenshots/ride.gif screenshots/ride.jpg screenshots/village.jpg
 ```
 
-The first tag is `v1.0.0`: it matches `package.json` and the CHANGELOG entry,
-and the README's release link only resolves once the tag exists.
+The first tag was `v1.0.0`; `v1.1.0` added the onboarding, recovery and
+performance work. A tag only resolves the matching README/CHANGELOG release
+link after it has been pushed.
 
 Before tagging: CI must be green on `main` (the badge above the README shows
 it), the `bundle-in-sync` job must pass, and `docs/research/lighthouse-baseline.md`

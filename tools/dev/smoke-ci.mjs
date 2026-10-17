@@ -13,11 +13,15 @@
  *   node tools/dev/smoke-ci.mjs --mobile        # emulated phone + touch pad
  *   node tools/dev/smoke-ci.mjs --throttle 20   # CPU-throttled (slow renderer)
  *
- * Browser: $PELICAN_BROWSER, else $CHROME_PATH, else the usual Windows
- * Edge/Chrome paths, else Playwright's own chromium (CI installs it with
+ * Browser: --browser chromium (default), firefox or webkit. For chromium,
+ * $PELICAN_BROWSER, else $CHROME_PATH, else the usual Windows Edge/Chrome
+ * paths, else Playwright's own chromium (CI installs it with
  * `npx playwright@1.64.0 install --with-deps chromium`).
+ *
+ * `--mobile` and `--throttle` use Chromium-only emulation/CDP. The desktop
+ * checks are shared by all three browsers.
  */
-import { chromium } from 'playwright-core';
+import { chromium, firefox, webkit } from 'playwright-core';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -32,6 +36,18 @@ const quality = arg('quality', 'low');
 const seed = arg('seed', '20261014');
 const mobile = process.argv.includes('--mobile');
 const throttle = Number(arg('throttle', '1'));
+const browserName = arg('browser', 'chromium');
+const browserTypes = { chromium, firefox, webkit };
+const browserType = browserTypes[browserName];
+if (!browserType) {
+  console.error(`smoke: unknown --browser "${browserName}" (use chromium, firefox or webkit)`);
+  process.exit(2);
+}
+const isChromium = browserName === 'chromium';
+if (mobile && !isChromium) {
+  console.error('smoke: --mobile uses Chromium emulation and cannot run on ' + browserName);
+  process.exit(2);
+}
 const useRoot = process.argv.includes('--root') || !existsSync(path.join(root, 'dist', 'index.html'));
 const entry = useRoot ? path.join(root, 'index.html') : path.join(root, 'dist', 'index.html');
 
@@ -51,15 +67,17 @@ const glFlags = process.platform === 'win32'
   ? ['--use-angle=d3d11', '--enable-unsafe-swiftshader']
   : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
 
-const launchOpts = {
-  headless: true,
-  args: [
-    ...glFlags, '--mute-audio', '--allow-file-access-from-files',
-    // containers give /dev/shm 64 MB, which chromium does not like
-    ...(process.platform === 'win32' ? [] : ['--disable-dev-shm-usage']),
-  ],
-};
-if (SYSTEM_BROWSER) launchOpts.executablePath = SYSTEM_BROWSER;
+const launchOpts = isChromium
+  ? {
+    headless: true,
+    args: [
+      ...glFlags, '--mute-audio', '--allow-file-access-from-files',
+      // containers give /dev/shm 64 MB, which chromium does not like
+      ...(process.platform === 'win32' ? [] : ['--disable-dev-shm-usage']),
+    ],
+    ...(SYSTEM_BROWSER ? { executablePath: SYSTEM_BROWSER } : {}),
+  }
+  : { headless: true };
 
 const fails = [];
 const check = (name, ok, extra = '') => {
@@ -67,8 +85,8 @@ const check = (name, ok, extra = '') => {
   if (!ok) fails.push(name);
 };
 
-const browser = await chromium.launch(launchOpts);
-console.log(`browser: ${browser.version()} (${SYSTEM_BROWSER || 'playwright chromium'})${mobile ? ' · emulated phone' : ''}`);
+const browser = await browserType.launch(launchOpts);
+console.log(`browser: ${browser.version()} (${isChromium ? SYSTEM_BROWSER || 'playwright chromium' : browserName})${mobile ? ' · emulated phone' : ''}`);
 const page = await browser.newPage(
   mobile
     ? {
@@ -84,16 +102,23 @@ const page = await browser.newPage(
 // The software-GL CI runner renders this scene at ~1 fps, so every interaction
 // below polls the game state instead of waiting on the clock. The throttle
 // flag reproduces that slowness locally.
-if (throttle > 1) {
+if (throttle > 1 && isChromium) {
   const client = await page.context().newCDPSession(page);
   await client.send('Emulation.setCPUThrottlingRate', { rate: throttle });
   console.log(`cpu throttled ${throttle}x (slow-renderer simulation)`);
+} else if (throttle > 1) {
+  console.log(`cpu throttle ignored on ${browserName} (CDP is Chromium-only)`);
 }
 
 // The ANGLE/D3D11 shader compiler emits this double-precision notice for the
 // terrain shader on every run; it is not actionable and does not appear on the
 // software-GL CI runners.
-const IGNORED_WARNINGS = [/cannot be represented accurately in double precision/];
+// Firefox also blocks local font access at file:// visibility level 3; the
+// font stack falls back cleanly and the notice is browser-internal.
+const IGNORED_WARNINGS = [
+  /cannot be represented accurately in double precision/,
+  /Request for font .* blocked at visibility level/,
+];
 const consoleProblems = [];
 const pageErrors = [];
 const foreignRequests = [];
