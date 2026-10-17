@@ -22,7 +22,7 @@
  * checks are shared by all three browsers.
  */
 import { chromium, firefox, webkit } from 'playwright-core';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -50,6 +50,7 @@ if (mobile && !isChromium) {
 }
 const useRoot = process.argv.includes('--root') || !existsSync(path.join(root, 'dist', 'index.html'));
 const entry = useRoot ? path.join(root, 'index.html') : path.join(root, 'dist', 'index.html');
+const pkgVersion = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')).version;
 
 const SYSTEM_BROWSER = [
   process.env.PELICAN_BROWSER,
@@ -143,11 +144,13 @@ check('world builds and reaches ready', true, `${(bootMs / 1000).toFixed(1)}s (q
 const boot = await page.evaluate(() => {
   const P = window.__pelican;
   return {
+    version: P.version,
     moduleErrors: P.moduleErrors || [],
     stages: (P.bootStages || []).map((s) => s.name),
     webgl2: !!P.engine.renderer.getContext(),
   };
 });
+check('debug API version matches package.json', boot.version === pkgVersion, `${boot.version} vs ${pkgVersion}`);
 check('no module failed to build', boot.moduleErrors.length === 0, JSON.stringify(boot.moduleErrors));
 check('all boot stages reported', boot.stages.includes('vegetation') && boot.stages.includes('ready'), boot.stages.join(','));
 check('WebGL2 context is live', boot.webgl2);
