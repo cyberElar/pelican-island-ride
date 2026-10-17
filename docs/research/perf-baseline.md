@@ -170,6 +170,6 @@ Two notes on how this maps back to the audit's own wording
   shared materials. The polygons are in the vegetation (grass, trees, bushes),
   so the LOD went into the ground cover, where the budget pressure actually was.
 - Its "mobile" budget row maps to this matrix's **low** tier (362 calls,
-  1.37 M triangles) and to `smoke-ci.mjs --mobile`, which runs the phone-sized
+  1.28 M triangles) and to `smoke-ci.mjs --mobile`, which runs the phone-sized
   viewport and touch input end to end. Real-device frame rates are still
   unmeasured — see the gaps in `browser-matrix.md`.
