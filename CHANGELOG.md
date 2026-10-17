@@ -7,6 +7,8 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-18
+
 ### Added
 
 - Cross-browser smoke coverage: `tools/dev/smoke-ci.mjs --browser firefox`
@@ -24,7 +26,7 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 
 - The release checklist is version-agnostic and includes the cross-browser
   smoke step; the package-lock root version is back in sync with
-  `package.json` (1.1.0).
+  `package.json`.
 - Tree geometry: trunk and branch cylinders are open-ended (the caps are buried
   or inside the canopy), which is RNG-neutral, so the island layout is
   untouched. Built vegetation drops from 1.52 M to 1.32 M triangles and the
@@ -184,6 +186,7 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
 - GitHub Pages deployment, dual-language README, screenshot harness and eight
   headless module test suites.
 
-[Unreleased]: https://github.com/cyberElar/pelican-island-ride/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/cyberElar/pelican-island-ride/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/cyberElar/pelican-island-ride/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/cyberElar/pelican-island-ride/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/cyberElar/pelican-island-ride/releases/tag/v1.0.0

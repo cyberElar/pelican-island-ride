@@ -953,7 +953,7 @@ async function boot() {
 
   // ------------------------------------------------------------- debug api
   window.__pelican = {
-    version: '1.1.0',
+    version: '1.1.1',
     seed,
     bootStages,
     engine,
