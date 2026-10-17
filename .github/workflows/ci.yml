@@ -121,13 +121,9 @@ jobs:
       - name: Browser smoke test
         run: node tools/dev/smoke-ci.mjs
 
-  smoke-cross-browser:
-    name: browser smoke (${{ matrix.browser }})
+  smoke-webkit:
+    name: browser smoke (headless webkit)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [firefox, webkit]
     steps:
       - uses: actions/checkout@v4
 
@@ -141,8 +137,11 @@ jobs:
       - name: Build the bundle
         run: npm run build
 
-      - name: Install ${{ matrix.browser }}
-        run: npx --yes playwright@1.64.0 install --with-deps ${{ matrix.browser }}
+      # Playwright's headless Linux Firefox never reaches a usable WebGL2
+      # context on this runner; Firefox is covered locally with
+      # `npm run smoke:firefox` instead.
+      - name: Install webkit
+        run: npx --yes playwright@1.64.0 install --with-deps webkit
 
       - name: Browser smoke test
-        run: node tools/dev/smoke-ci.mjs --browser ${{ matrix.browser }}
+        run: node tools/dev/smoke-ci.mjs --browser webkit

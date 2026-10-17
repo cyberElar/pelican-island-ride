@@ -9,8 +9,8 @@ current `main`.
 | Node 22 / 24 (CI matrix) | `npm test` | the 11 module suites: layout, engine, character, vegetation, props, landmarks, life, audio, UI, gameplay, mobile |
 | Headless **Edge 155.0.4283.45**, 1280x720 @1x | `node tools/dev/smoke-ci.mjs` | boots the built game from `file://`, rides with real key input, pauses and resumes, tutorial strip appears, `?debug=1` overlay reports fps/calls, HUD speedometer follows, 537 scene meshes, 25 discoverable landmarks, zero console errors, zero external requests |
 | Headless **Chrome 155.0.8059.40**, same viewport | `PELICAN_BROWSER="…chrome.exe" node tools/dev/smoke-ci.mjs` | the same checks on a second Chromium build |
-| Headless **Firefox 157.0**, same viewport | `npm run smoke:firefox` | the same checks on Gecko; the only browser notice is Firefox's local-font visibility warning, which is filtered as browser-internal |
-| Headless **WebKit 27.2** (Safari engine), same viewport | `npm run smoke:webkit` | the same checks on WebKit, including WebGL2, the tutorial, input, pause/resume and the recovery sweep |
+| Headless **Firefox 157.0**, same viewport (local Windows) | `npm run smoke:firefox` | the same checks on Gecko; the only browser notice is Firefox's local-font visibility warning, which is filtered as browser-internal |
+| Headless **WebKit 27.2** (Safari engine), same viewport | `npm run smoke:webkit` | the same checks on WebKit, including WebGL2, the tutorial, input, pause/resume and the recovery sweep; also runs in CI |
 | Headless Edge 155, **emulated phone** (390x844 @3x, Android UA, touch) | `node tools/dev/smoke-ci.mjs --mobile` | the same checks plus: the virtual pad is visible, the layout does not overflow horizontally, and the bike actually moves when the on-screen throttle is held |
 | Lighthouse 13.5, mobile preset + desktop preset | `docs/research/lighthouse-baseline.md` | performance / accessibility / best-practices / SEO scores and blocking time |
 | Ten fixed cameras x four presets | `docs/research/perf-baseline.md` | draw calls, triangles and GPU ms per camera, per tier |
@@ -46,5 +46,11 @@ npm run smoke:cross                                # chromium + firefox + webkit
   Safari on macOS/iOS. Real Safari/iOS specifics (WebAudio unlock behaviour,
   `file://` rules, the iOS pointer fallback) still need a device or a Mac.
   `docs/SPEC.md` assumes WebGL2, which Safari has shipped since 15.
+- **Firefox is local-only in CI terms.** The full suite passes in headless
+  Firefox 157 on Windows; Playwright's headless Linux Firefox on the GitHub
+  runner never reaches a usable WebGL2 context (the boot wait expires at
+  240 s), so CI keeps the Chromium and WebKit jobs instead of a red Firefox
+  job. A real Firefox-on-Linux check or a working headless GL setup would
+  close this.
 - GPU numbers in `perf-baseline.md` come from the Intel iGPU in this machine via
   ANGLE D3D11, so they are comparative, not absolute.

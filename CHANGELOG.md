@@ -14,7 +14,9 @@ and the project aims to follow [Semantic Versioning](https://semver.org/).
   WebGL2, tutorial, real input, pause/resume, recovery, content sanity and the
   `file://` contract). `npm run smoke:cross` runs all three; the documented
   matrix now records Firefox 157 and WebKit 27.2 passes in addition to Edge and
-  Chrome, and CI runs Firefox/WebKit jobs alongside the Chromium one.
+  Chrome, and CI runs a WebKit job alongside the Chromium one. Firefox stays a
+  local/manual check: Playwright's headless Linux Firefox never reaches a
+  usable WebGL2 context on the CI runner, while it passes on Windows.
   Playwright's WebKit is not Safari/iOS, so real-device Safari remains an
   explicit gap.
 
